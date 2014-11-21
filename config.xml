@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data>
+	<!-- DEBUG,非true关闭 -->
+	<debug src="false"/>
+	
+	<!-- 是否读取本地文件,非true关闭 -->
+	<local src="true"/>
+	
+	<!-- 是否需要登陆,非true关闭 -->
+	<use_login src="false"/>
+	
+	<!-- 刷新时间,单位毫秒 -->
+	<refresh src="5000"/>
+	
+	<!-- 地图面板隐藏时间,单位毫秒 -->
+	<toggle src="5000"/>
+	
+	<!-- 展示最大条目 -->
+	<max_count src="500"/>
+	
+	<!-- 主路径 -->
+	<global_path src="http://max.bj.oupeng.com/ms/"/>
+	
+	<!-- 登录接口 -->
+	<login src="http://max.bj.oupeng.com/mlogin/"/>
+	
+	<!-- 单位列表 -->
+	<address src="event.do?m=space&f=addresslist"/>
+	
+	<!-- 全局监测展示 -->
+	<global src="event.do?m=space&f=global"/>
+	
+	<!-- 攻击类型列表 -->
+	<type_list src="event.do?m=space&f=typelist"/>
+	
+	<!-- 攻击类型列表 -->
+	<source_list src="event.do?m=space&f=sourcelist"/>
+	
+	<!-- 电子地图显示支持,单点 -->
+	<map_list1 src="event.do?m=space&f=maplist&showtype=1&eventtype=[type]"/>
+	<!-- 电子地图显示支持,多点 -->
+	<map_list2 src="event.do?m=space&f=maplist&showtype=2&eventtype=[type]"/>
+	<!-- 电子地图显示支持,散列 -->
+	<map_list3 src="event.do?m=space&f=maplist&showtype=3&eventtype=[type]"/>
+	
+	<!-- 安全事件历史曲线 -->
+	<time_list src="event.do?m=time&f=list&begin=[begin]&end=[end]&x=[x]&type=[type]&address=[address]&ip=[ip]"/>
+	<!-- 安全事件同期对比 -->
+	<compare_list src="event.do?m=time&f=compare&begin=[begin]&end=[end]&x=[x]&type=[type]&address=[address]&ip=[ip]"/>
+	<!-- 安全事件同期抽点 -->
+	<sample_list src="event.do?m=time&f=sample&address=[address]&ip=[ip]&type=[type]&x=[x]&range=[range]"/>
+	
+	<!-- 威胁类型发生次数 -->
+	<sort_type src="event.do?m=type&f=sort_type&begin=[begin]&end=[end]&limit="/>
+	<!-- 受攻击地址 -->
+	<sort_dst src="event.do?m=type&f=sort_dst&begin=[begin]&end=[end]&limit="/>
+	<!-- 威胁地址来源 -->
+	<sort_src src="event.do?m=type&f=sort_src&begin=[begin]&end=[end]&limit="/>
+	
+	<!-- 全局查询 -->
+	<global_list src="event.do?m=global&f=list&type=[type]&level=[level]&src_ip=[src]&dst_ip=[dst]&begin=[begin]&end=[end]"/>
+	
+	<!-- 探针列表 -->
+	<device_list src="monitor.do?m=devicelist"/>
+	<!-- 探针列表数据 -->
+	<device_data src="monitor.do?m=device&device_id=[device]"/>
+	
+	<!-- 输出端口列表 -->
+	<port_list src="monitor.do?m=portlist"/>
+	<!-- 协议类型列表 -->
+	<prototype_list src="monitor.do?m=protocollist"/>
+	
+	<!-- 总系统输入流量曲线 -->
+	<sum_list src="monitor.do?m=flow&f=sum&range=[range]"/>
+	<!-- 总输入流量（按协议）曲线 -->
+	<protocol_list src="monitor.do?m=flow&f=protocol&protocols=[protocols]&range=[range]"/>
+	<!-- 总分发流量曲线图 -->
+	<ports_list src="monitor.do?m=flow&f=port&ports=[ports]&range=[range]"/>
+	
+	<menu>
+		<main><![CDATA[事件维度统计,电子地图,集成运行数据]]></main>
+		<sub1><![CDATA[按空间展示,按类型展示,时间维度展示,全局查询展示]]></sub1>
+		<sub2><![CDATA[探针设备统计,总流量统计]]></sub2>
+	</menu>
+	
+	<!-- 空间展示显示内容 -->
+	<space>
+		<li name="报警时间" src="date" />
+		<li name="事件类型" src="name" />
+		<li name="报警级别" src="level" />
+		<li name="报警内容" src="detail" />
+		<li name="源IP" src="src_ip" />
+		<li name="源端口" src="src_port" />
+		<li name="目的IP" src="dst_ip" />
+		<li name="目标端口" src="dst_port" />
+	</space>
+	
+	<!-- 全局查询显示内容 -->
+	<global_type>
+		<li name="报警时间" src="date" />
+		<li name="事件类型" src="name" />
+		<li name="报警级别" src="level" />
+		<li name="报警内容" src="detail" />
+		<li name="源IP" src="src_ip" />
+		<li name="源端口" src="src_port" />
+		<li name="目的IP" src="dst_ip" />
+		<li name="目标端口" src="dst_port" />
+	</global_type>
+	
+	<!-- 图表颜色 -->
+	<color><![CDATA[0xB0E0E6,0xFF7F50,0x00FF00,0xA020F0,0x8A360F,0x7FFF00,0x1E90FF,0xBC8F8F,0x00FF7F,0x802A2A,0x87CEEB,0x32CD32,0xFFC0CB,0x8A2BE2,0x00C78C,0xDDA0DD,0xFFE384]]></color>
+</data>

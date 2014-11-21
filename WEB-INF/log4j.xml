@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<log4j:configuration debug="true">
+
+    <appender name="stdout"
+        class="org.apache.log4j.ConsoleAppender">
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %p [%c] - %m%n" />
+        </layout>
+    </appender>
+
+    <appender name="file"
+        class="org.apache.log4j.DailyRollingFileAppender">
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %p [%c] - %m%n" />
+        </layout>
+        <param name="File" value="/web/logs/monitor/services.log" />
+        <param name="DatePattern" value="'.'yyyy-MM-dd'.log'"/>
+	<param name="encoding" value="UTF-8"/>
+    </appender>
+
+    <root>
+        <priority value="debug" />
+        <appender-ref ref="stdout" />
+        <appender-ref ref="file" />
+    </root>
+    <category name="org.apache">
+        <priority value="error" />
+        <appender-ref ref="file" />
+    </category >
+    
+    <category name="com.mchange.v2">
+        <priority value="error" />
+        <appender-ref ref="file" />
+    </category >
+    
+     <category name="org.quartz">
+        <priority value="error" />
+        <appender-ref ref="file" />
+    </category >
+	
+	<category name="org.springframework">
+        <priority value="error" />
+        <appender-ref ref="file" />
+    </category >
+</log4j:configuration>
