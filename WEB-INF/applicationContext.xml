@@ -151,7 +151,14 @@
 		<property name="monitorDeviceDao" ref="monitorDeviceDao" />
 		<property name="monitorFlowDao" ref="monitorFlowDao" />
 	</bean>
-
+	<bean id="authDao" class="com.it.dao.AuthDao">
+		<property name="jdbcTemplate" ref="jdbcTemplateMain" />
+	</bean>
+	<bean id="authService" class="com.it.service.AuthService"
+		factory-method="getInstance">
+		<property name="authDao" ref="authDao" />
+	</bean>
+	
 	<!-- REDIS客户端 -->
 	<!-- <bean id="jedisUtils" class="com.it.cache.JedisUtils" factory-method="getInstance" 
 		/> -->

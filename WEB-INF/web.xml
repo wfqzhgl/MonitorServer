@@ -46,7 +46,6 @@
 		<url-pattern>/*</url-pattern>
 	</filter-mapping>
 
-	<!-- ADserver -->
 	<context-param>
 		<param-name>contextConfigLocation</param-name> 
 		<param-value>/WEB-INF/applicationContext.xml,/WEB-INF/scheduler.spring.xml</param-value>
@@ -71,6 +70,15 @@
 	<servlet-mapping>
 		<servlet-name>monitorController</servlet-name>
 		<url-pattern>/monitor.do</url-pattern>
+	</servlet-mapping>
+	
+	<servlet>
+		<servlet-name>authController</servlet-name>
+		<servlet-class>com.it.web.AuthController</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>authController</servlet-name>
+		<url-pattern>/auth.do</url-pattern>
 	</servlet-mapping>
 	
 </web-app>

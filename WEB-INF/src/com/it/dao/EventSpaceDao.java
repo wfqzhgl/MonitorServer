@@ -2,6 +2,7 @@ package com.it.dao;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -47,16 +48,100 @@ public class EventSpaceDao extends BaseDao {
 		String begintime = JedisUtils.getInstance().get(key);
 		logger.debug("====begintime from redis:"
 				+ (begintime == null ? "null" : begintime));
-		if(begintime!=null){
+		if (begintime != null) {
 			return String.valueOf(Long.parseLong(begintime) - 20);
 		}
 		return begintime;
-		
+
 	}
 
 	private void set_to_redis(String key, String v) {
 		JedisUtils.getInstance().set(key, v);
 		logger.debug("==== set to redis: key=" + key + ",v=" + v);
+
+	}
+
+	public List<Object> get_space_map_list_from_hbase(String sessionid,
+			Map<String, String> params) throws IOException,
+			NumberFormatException, ParseException {
+		List<Object> list = new ArrayList<Object>();
+
+		// get last begintime from cache JedisUtils
+		String timekey = Constant.PARAMETER_MAPLIST_BEGINTIME + "_" + sessionid;
+		String begintime;
+		if (params.containsKey(Constant.PARAMETER_MAPLIST_BEGINTIME)) {
+			logger.debug("====begintime  in  url:"
+					+ params.get(Constant.PARAMETER_MAPLIST_BEGINTIME));
+			begintime = params.get(Constant.PARAMETER_MAPLIST_BEGINTIME);
+		} else {
+			begintime = get_time_from_redis(timekey);
+			if (begintime != null && !begintime.isEmpty()) {
+				params.put(Constant.PARAMETER_MAPLIST_BEGINTIME, begintime);
+			} else {
+				begintime = String
+						.valueOf(System.currentTimeMillis() / 1000 - 3600);
+			}
+		}
+		// 1单点/2多点/3散列
+		String showtype = params.get(Constant.PARAMETER_MAPLIST_SHOWTYPE);
+
+		String eventtype = params.get(Constant.PARAMETER_MAPLIST_EVENTTYPE);
+		List<String> elist = new ArrayList<String>();
+		if (eventtype != null && !eventtype.isEmpty()) {
+			// 转换成中文名
+			elist.add(TypeListLoad.getInstance().getTypeByID(eventtype)
+					.getName());
+
+		}
+
+		String limit = params.get(Constant.LIMIT_KEY);
+
+		if (this.getMapDataFromFile()) {
+			return get_space_map_list(sessionid, params);
+		}
+
+		List<Map<String, String>> hlist = HbaseBaseOP.getInstance()
+				.get_space_origin_list(Long.parseLong(begintime),
+						Long.parseLong(limit), elist);
+
+		EventMapListVO vo = null;
+		for (Map<String, String> map : hlist) {
+			vo.setType(showtype);
+			List<Map<String, String>> msglist = new ArrayList<Map<String, String>>();
+			List<Map<String, String>> datalist = new ArrayList<Map<String, String>>();
+			Map<String,String> tmpmap = new HashMap<String,String>();
+			tmpmap.put("msg_title", map.get("msg_title"));
+			tmpmap.put("msg_data", map.get("msg_data"));
+			msglist.add(tmpmap);
+			
+			tmpmap = new HashMap<String,String>();
+			tmpmap.put("sip", map.get("sip"));
+			tmpmap.put("dip", map.get("dip"));
+			
+			tmpmap.put("d_country_code", map.get("d_country_code"));
+			tmpmap.put("d_country_name", map.get("d_country_name"));
+			tmpmap.put("d_province_code", map.get("d_province_code"));
+			tmpmap.put("d_province_name", map.get("d_province_name"));
+			tmpmap.put("d_city_code", map.get("d_city_code"));
+			tmpmap.put("d_city_name", map.get("d_city_name"));
+			tmpmap.put("s_country_code", map.get("s_country_code"));
+			tmpmap.put("s_country_name", map.get("s_country_name"));
+			tmpmap.put("s_province_code", map.get("s_province_code"));
+			tmpmap.put("s_province_name", map.get("s_province_name"));
+			tmpmap.put("s_city_code", map.get("s_city_code"));
+			tmpmap.put("s_city_name", map.get("s_city_name"));
+			datalist.add(tmpmap);
+			
+			vo.setMsglist(msglist);
+			vo.setDatalist(datalist);
+			list.add(vo);
+		}
+
+		// update time
+		set_to_redis(timekey,
+				String.valueOf(System.currentTimeMillis() / 1000 - 600));
+
+		return list;
 
 	}
 

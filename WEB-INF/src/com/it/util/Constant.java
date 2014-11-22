@@ -12,6 +12,10 @@ public interface Constant {
 	String LIMIT_DEFAULT = "10";
 	String PARAMETER_NAME_MODEL ="m";
 	String PARAMETER_NAME_FUNCTION ="f";
+	String PARAMETER_NAME_USERNAME ="u";
+	String PARAMETER_NAME_PASSWD ="p";
+	String PARAMETER_NAME_PASSWD1 ="p1";
+	String PARAMETER_NAME_PASSWD2 ="p2";
 	String PARAMETER_MAPLIST_SHOWTYPE="showtype";
 	String PARAMETER_MAPLIST_EVENTTYPE="eventtype";
 	String MAP_DATA_URL="MAP_DATA_URL";
@@ -59,6 +63,7 @@ public interface Constant {
 	String QUERY_ROWS = "rows";
 	String QUERY_LEVEL = "level";
 	String PIE_SHOW_COUNT = "pie_show_count";
+	String PARAMETER_NAME_IS_ADMIN = "admin";
 	
 	static final String SQL_DEL_SRC_HOURLY = "DELETE FROM `attack_srcstat_hourly` WHERE date=? and hour=?;";
 	static final String SQL_DEL_DST_HOURLY = "DELETE FROM `attack_dststat_hourly` WHERE date=? and hour=?;";

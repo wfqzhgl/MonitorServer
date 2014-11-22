@@ -169,6 +169,7 @@ public class EventController extends HttpServlet {
 				}
 				params.put(Constant.PARAMETER_MAPLIST_SHOWTYPE, showtype);
 				params.put(Constant.PARAMETER_MAPLIST_EVENTTYPE, eventtype);
+				params.put(Constant.LIMIT_KEY, limit);
 
 				try {
 					list = EventService.getInstance().get_space_map_list(

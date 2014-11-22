@@ -255,7 +255,9 @@ public class Utils {
 			Utils.getHbaseKeyByTimeStamp(System
 					.currentTimeMillis() - 1800000 * 1));
 			
-			System.out.println("1000,12,13".contains("1000"));
+//			System.out.println("1000,12,13".contains("1000"));
+			
+			System.out.println(System.currentTimeMillis());
 					
 		} catch (Exception e) {
 			// TODO Auto-generated catch block

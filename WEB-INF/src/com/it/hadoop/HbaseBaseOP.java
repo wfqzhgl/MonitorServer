@@ -179,7 +179,8 @@ public class HbaseBaseOP {
 	public void getFlowTableResult(Calendar cal, String tableNameProtocols,
 			String tableNamePorts, PreparedStatement pstmt_protocol,
 			PreparedStatement pstmt_port) {
-		logger.debug("--------table list:"+tableNameProtocols+","+tableNamePorts);
+		logger.debug("--------table list:" + tableNameProtocols + ","
+				+ tableNamePorts);
 		HTable flowTableProtocols = null;
 		HTable flowTablePorts = null;
 		ResultScanner rs1 = null;
@@ -197,10 +198,10 @@ public class HbaseBaseOP {
 			s1.setStopRow(end.getBytes());
 			s2.setStartRow(begin.getBytes());
 			s2.setStopRow(end.getBytes());
-			
+
 			rs1 = flowTableProtocols.getScanner(s1);
 			addFlowHourlyBatch(cal, "protocols", pstmt_protocol, rs1);
-			
+
 			flowTablePorts = new HTable(conf, tableNamePorts);
 			rs2 = flowTablePorts.getScanner(s2);
 			addFlowHourlyBatch(cal, "ports", pstmt_port, rs2);
@@ -208,7 +209,7 @@ public class HbaseBaseOP {
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			logger.error("=========getFlowTableResult:"+e.getMessage());
+			logger.error("=========getFlowTableResult:" + e.getMessage());
 
 		} finally {
 			if (rs1 != null) {
@@ -255,12 +256,12 @@ public class HbaseBaseOP {
 		String date = Constant.DEFAULT_DATE_FORMAT.format(cal.getTime());
 		String hour = String.valueOf(cal.get(Calendar.HOUR_OF_DAY));
 		String week = String.valueOf(cal.get(Calendar.WEEK_OF_YEAR));
-		String month = String.valueOf(cal.get(Calendar.MONTH)+1);
+		String month = String.valueOf(cal.get(Calendar.MONTH) + 1);
 
 		String datehour = date.replaceAll("-", "")
 				+ (hour.length() <= 1 ? ("0" + hour) : hour);
-		
-		logger.info("-----addFlowHourlyBatch,tag="+tag);
+
+		logger.info("-----addFlowHourlyBatch,tag=" + tag);
 
 		if (tag.equalsIgnoreCase("protocols")) {
 			for (Result r : rs) {
@@ -481,8 +482,8 @@ public class HbaseBaseOP {
 					Long dip_l = Long.parseLong(dip);
 					String sip_s = Utils.longToIp(sip_l);
 					String dip_s = Utils.longToIp(dip_l);
-					logger.info("=============sip,dip,sip_s,dip_s=" + sip + "," + dip
-							+ "," + sip_s + "," + dip_s);
+					logger.info("=============sip,dip,sip_s,dip_s=" + sip + ","
+							+ dip + "," + sip_s + "," + dip_s);
 					String type = getTypeName(new String(result.getValue(
 							"log".getBytes(), "type".getBytes())));
 					String code = TypeListLoad.getInstance()
@@ -555,9 +556,106 @@ public class HbaseBaseOP {
 		}
 	}
 
+	public List<Map<String, String>> get_space_origin_list(long timeFrom,
+			long limit, List<String> type_names) throws IOException, ParseException {
+		if (String.valueOf(timeFrom).length() == 10) {
+			timeFrom = timeFrom * 1000;
+		}
+		List<Map<String, String>> res = new ArrayList<Map<String, String>>();
+		Collection<DeviceVO> devices = DeviceConfigLoad.getInstance()
+				.getDevices();
+
+		HTable table;
+		Scan scan;
+		Map<String, String> tmp;
+		for (DeviceVO dev : devices) {
+			String tname = dev.getGuid() + "_log";
+			// if (!isTableExist(tname)) {
+			// logger.info("===htable  not exist:" + tname);
+			// continue;
+			// }
+			table = new HTable(conf, tname);
+			scan = new Scan();
+			scan.setCaching(500);
+			String begin = Utils.getHbaseKeyByTimeStamp(System
+					.currentTimeMillis()-600000);
+			String end = Utils.getHbaseKeyByTimeStamp(timeFrom);
+			scan.setStartRow(begin.getBytes());
+			scan.setStopRow(end.getBytes());
+			ResultScanner results = table.getScanner(scan);
+			for (Result result : results) {
+				tmp = new HashMap<String, String>();
+				// String row = new String(new String(result.getRow()));
+				String dip = "";
+				if (result
+						.containsColumn("log".getBytes(), "dst_ip".getBytes())) {
+					dip = new String(result.getValue("log".getBytes(),
+							"dst_ip".getBytes()));
+				}
+
+				String sip = "";
+				if (result
+						.containsColumn("log".getBytes(), "src_ip".getBytes())) {
+					sip = new String(result.getValue("log".getBytes(),
+							"src_ip".getBytes()));
+				}
+
+				String msg_data = "";
+				if (result
+						.containsColumn("log".getBytes(), "logstr".getBytes())) {
+					msg_data = new String(result.getValue("log".getBytes(),
+							"logstr".getBytes()));
+				}
+
+				String event_type = getTypeName(new String(result.getValue(
+						"log".getBytes(), "type".getBytes())));
+
+				// 类型过滤type_names
+				if (type_names != null && !type_names.isEmpty()) {
+					if (!type_names.contains(event_type)) {
+						continue;
+					}
+				}
+
+				IpInfo sinfo = IPParserLoad.getInstance().parseIP(sip);
+				IpInfo dinfo = IPParserLoad.getInstance().parseIP(dip);
+
+				tmp.put("dip", dinfo.getIp().toString());
+				tmp.put("sip", sinfo.getIp().toString());
+				tmp.put("msg_title", event_type);
+				tmp.put("msg_data", msg_data);
+				tmp.put("d_country_code", dinfo.getCountry_code());
+				tmp.put("d_country_name", dinfo.getCountry());
+				tmp.put("d_province_code", dinfo.getProvince_code());
+				tmp.put("d_province_name", dinfo.getProvince());
+				tmp.put("d_city_code", dinfo.getCity_code());
+				tmp.put("d_city_name", dinfo.getCity());
+				tmp.put("s_country_code", sinfo.getCountry_code());
+				tmp.put("s_country_name", sinfo.getCountry());
+				tmp.put("s_province_code", sinfo.getProvince_code());
+				tmp.put("s_province_name", sinfo.getProvince());
+				tmp.put("s_city_code", sinfo.getCity_code());
+				tmp.put("s_city_name", sinfo.getCity());
+
+				res.add(tmp);
+
+				if (res.size() >= limit) {
+					break;
+				}
+			}
+			table.close();
+		}
+
+		logger.debug("---------size of get_space_origin_list:" + res.size());
+		return res;
+	}
+
 	public List<Object> get_space_key_list(long timeFrom, long limit,
 			String device_ids, List<String> type_names, String src_ips,
 			String dst_ips) throws Exception {
+		if (String.valueOf(timeFrom).length() == 10) {
+			timeFrom = timeFrom * 1000;
+		}
 		List<Object> res = new ArrayList<Object>();
 		Collection<DeviceVO> devices;
 		if (device_ids != null && !device_ids.isEmpty()) {
@@ -678,10 +776,8 @@ public class HbaseBaseOP {
 				tmp.setSrc_ip(sinfo.getIp().toString());
 				tmp.setDst_ip(dinfo.getIp().toString());
 
-				tmp.setSrc_name(sinfo.getCountry() + " " + sinfo.getProvince()
-						+ " " + sinfo.getCity());
-				tmp.setDst_name(dinfo.getCountry() + " " + dinfo.getProvince()
-						+ " " + dinfo.getCity());
+				tmp.setSrc_name(sinfo.getCountry() + "/" + sinfo.getProvince());
+				tmp.setDst_name(dinfo.getCountry() + "/" + dinfo.getProvince());
 				res.add(tmp);
 
 				if (res.size() >= limit) {
