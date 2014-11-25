@@ -78,7 +78,7 @@
 		<property name="jdbcTemplate" ref="jdbcTemplateMain" />
 		<!-- 统计过去几小时 -->
 		<property name="pastHour" value="1" />
-		
+
 	</bean>
 	<bean id="deviceConfigLoad" class="com.it.config.DeviceConfigLoad"
 		factory-method="getInstance">
@@ -114,7 +114,8 @@
 		<property name="country_file" value="/data/soft/MonitorServer/WEB-INF/country.txt" />
 		<property name="ip_data_maxmind"
 			value="/data/soft/MonitorServer/WEB-INF/GeoLite2-City.mmdb" />
-		
+		<property name="ip_data_custom" value="/data/soft/MonitorServer/WEB-INF/ipdata.csv" />
+
 	</bean>
 
 
@@ -158,7 +159,7 @@
 		factory-method="getInstance">
 		<property name="authDao" ref="authDao" />
 	</bean>
-	
+
 	<!-- REDIS客户端 -->
 	<!-- <bean id="jedisUtils" class="com.it.cache.JedisUtils" factory-method="getInstance" 
 		/> -->

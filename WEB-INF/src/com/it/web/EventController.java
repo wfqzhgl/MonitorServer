@@ -71,7 +71,7 @@ public class EventController extends HttpServlet {
 				: limit;
 
 		String fromHbase = request.getParameter("fromHbase");
-		fromHbase = (fromHbase == null || fromHbase.isEmpty()) ? "true"
+		fromHbase = (fromHbase == null || fromHbase.isEmpty()) ? ""
 				: fromHbase;
 
 		// 单位编码
@@ -174,7 +174,7 @@ public class EventController extends HttpServlet {
 				try {
 					list = EventService.getInstance().get_space_map_list(
 							sessionid, params);
-				} catch (IOException e) {
+				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 					list = null;

@@ -71,16 +71,16 @@ public class EventService {
 	}
 
 	public List<Object> get_space_map_list(String sessionid,
-			Map<String, String> params) throws IOException {
+			Map<String, String> params) throws IOException, NumberFormatException, ParseException {
 		// TODO Auto-generated method stub
-		return eventSpaceDao.get_space_map_list(sessionid, params);
+		return eventSpaceDao.get_space_map_list_from_hbase(sessionid, params);
 	}
 
 	public List<Object> get_space_global_list(String sessionid,String fromTime, long limit, String fromHbase)
 			throws Exception {
 		// TODO Auto-generated method stub
 		
-		return eventSpaceDao.get_space_global_list(sessionid,fromTime, limit,fromHbase.equalsIgnoreCase("false")?false:true);
+		return eventSpaceDao.get_space_global_list(sessionid,fromTime, limit,fromHbase);
 	}
 
 	public List<Object> get_address_list() {
@@ -102,7 +102,7 @@ public class EventService {
 			String src_address, String dst_address,String fromHbase) throws Exception {
 		// TODO Auto-generated method stub
 		return eventSpaceDao.get_space_part_list(sessionid,fromTime, limit, src_address,
-				dst_address,fromHbase.equalsIgnoreCase("false")?false:true);
+				dst_address,"fromHbase");
 	}
 
 	public List<Object> get_space_key_list(String sessionid,String fromTime, long limit,
@@ -110,7 +110,7 @@ public class EventService {
 			throws Exception {
 		// TODO Auto-generated method stub
 		return eventSpaceDao.get_space_key_list(sessionid,fromTime, limit, device_id,
-				type_ids, src_ip, dst_ip,fromHbase.equalsIgnoreCase("false")?false:true);
+				type_ids, src_ip, dst_ip,"fromHbase");
 	}
 
 	public List<Object> get_type_sorttype_list(String begin, String end,
@@ -163,7 +163,7 @@ public class EventService {
 		dst_ip = Utils.trimStr(dst_ip, ",");
 		type_id = Utils.trimStr(type_id, ",");
 		
-		return eventGlobalDao.get_global_list(type_id,level,src_ip,dst_ip,begin,end,limit,fromHbase.equalsIgnoreCase("false")?false:true);
+		return eventGlobalDao.get_global_list(type_id,level,src_ip,dst_ip,begin,end,limit,"fromHbase");
 	}
 
 	public List<Object> get_global_flow_list() {

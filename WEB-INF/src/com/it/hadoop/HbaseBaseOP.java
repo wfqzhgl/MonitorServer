@@ -557,10 +557,15 @@ public class HbaseBaseOP {
 	}
 
 	public List<Map<String, String>> get_space_origin_list(long timeFrom,
-			long limit, List<String> type_names) throws IOException, ParseException {
+			long limit, List<String> type_names) throws IOException,
+			ParseException {
+
 		if (String.valueOf(timeFrom).length() == 10) {
 			timeFrom = timeFrom * 1000;
 		}
+		logger.info("-------get request origin list:" + timeFrom + ",limit="
+				+ limit + ",type=" + Arrays.toString(type_names.toArray()));
+
 		List<Map<String, String>> res = new ArrayList<Map<String, String>>();
 		Collection<DeviceVO> devices = DeviceConfigLoad.getInstance()
 				.getDevices();
@@ -568,7 +573,9 @@ public class HbaseBaseOP {
 		HTable table;
 		Scan scan;
 		Map<String, String> tmp;
+		int tip = 0;
 		for (DeviceVO dev : devices) {
+			logger.info("------- at device " + tip);
 			String tname = dev.getGuid() + "_log";
 			// if (!isTableExist(tname)) {
 			// logger.info("===htable  not exist:" + tname);
@@ -578,7 +585,7 @@ public class HbaseBaseOP {
 			scan = new Scan();
 			scan.setCaching(500);
 			String begin = Utils.getHbaseKeyByTimeStamp(System
-					.currentTimeMillis()-600000);
+					.currentTimeMillis() - 20000);
 			String end = Utils.getHbaseKeyByTimeStamp(timeFrom);
 			scan.setStartRow(begin.getBytes());
 			scan.setStopRow(end.getBytes());
@@ -622,7 +629,8 @@ public class HbaseBaseOP {
 
 				tmp.put("dip", dinfo.getIp().toString());
 				tmp.put("sip", sinfo.getIp().toString());
-				tmp.put("msg_title", event_type);
+				tmp.put("msg_title", event_type + "(" + sinfo.getCountry()
+						+ "->" + dinfo.getCountry() + ")");
 				tmp.put("msg_data", msg_data);
 				tmp.put("d_country_code", dinfo.getCountry_code());
 				tmp.put("d_country_name", dinfo.getCountry());
@@ -637,13 +645,22 @@ public class HbaseBaseOP {
 				tmp.put("s_city_code", sinfo.getCity_code());
 				tmp.put("s_city_name", sinfo.getCity());
 
+				
+				String row = new String(new String(result.getRow()));
+				String time = Utils.get_date_string_from_hbase_key(row);
+				
+				logger.info("------- got record:" +"time:"+time+",sip:"+sip+",dip:"+dip+sinfo.getCountry()
+						+ sinfo.getProvince() + "-->" + dinfo.getCountry()
+						+ dinfo.getProvince() + "," + event_type);
 				res.add(tmp);
 
 				if (res.size() >= limit) {
+					logger.info("------- limit got,exiting.");
 					break;
 				}
 			}
 			table.close();
+			tip++;
 		}
 
 		logger.debug("---------size of get_space_origin_list:" + res.size());

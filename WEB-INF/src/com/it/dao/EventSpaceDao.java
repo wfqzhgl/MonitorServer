@@ -106,6 +106,7 @@ public class EventSpaceDao extends BaseDao {
 
 		EventMapListVO vo = null;
 		for (Map<String, String> map : hlist) {
+			vo=new EventMapListVO();
 			vo.setType(showtype);
 			List<Map<String, String>> msglist = new ArrayList<Map<String, String>>();
 			List<Map<String, String>> datalist = new ArrayList<Map<String, String>>();
@@ -139,7 +140,7 @@ public class EventSpaceDao extends BaseDao {
 
 		// update time
 		set_to_redis(timekey,
-				String.valueOf(System.currentTimeMillis() / 1000 - 600));
+				String.valueOf(System.currentTimeMillis() / 1000 - 20));
 
 		return list;
 
@@ -237,8 +238,16 @@ public class EventSpaceDao extends BaseDao {
 	}
 
 	public List<Object> get_space_global_list(String sessionid,
-			String fromTime, long limit, boolean fromHbase) throws Exception {
+			String fromTime, long limit, String fromHbase) throws Exception {
 
+		boolean fromhbase;
+		if(fromHbase!=null&&!fromHbase.isEmpty()){
+			fromhbase= fromHbase.equalsIgnoreCase("false")?false:true;
+		}else{
+			fromhbase=this.getDataFromHbase();
+		}
+		
+				
 		List<Object> list = new ArrayList<Object>();
 
 		long now = Calendar.getInstance().getTimeInMillis();
@@ -252,7 +261,7 @@ public class EventSpaceDao extends BaseDao {
 		}
 
 		// // TODO Auto-generated method stub
-		if (fromHbase) {
+		if (fromhbase) {
 
 			list = HbaseBaseOP.getInstance()
 					.get_space_global_logs(begin, limit);
@@ -320,9 +329,16 @@ public class EventSpaceDao extends BaseDao {
 	 */
 	public List<Object> get_space_part_list(String sessionid, String fromTime,
 			long limit, String src_country, String dst_address,
-			boolean fromHbase) throws Exception {
+			String fromHbase) throws Exception {
 		List<Object> list = new ArrayList<Object>();
 
+		boolean fromhbase;
+		if(fromHbase!=null&&!fromHbase.isEmpty()){
+			fromhbase= fromHbase.equalsIgnoreCase("false")?false:true;
+		}else{
+			fromhbase=this.getDataFromHbase();
+		}
+		
 		long now = Calendar.getInstance().getTimeInMillis();
 		long begin = now - 24 * 3600 * 1000;
 		String timekey = "space_part" + "_" + sessionid;
@@ -334,7 +350,7 @@ public class EventSpaceDao extends BaseDao {
 		}
 
 		// ---------------------test
-		if (fromHbase) {
+		if (fromhbase) {
 			AddressVO avo = null;
 			if (dst_address != null && !dst_address.isEmpty()) {
 				avo = AddressConfig.getInstance().getAddressTargetByCode(
@@ -372,9 +388,17 @@ public class EventSpaceDao extends BaseDao {
 
 	public List<Object> get_space_key_list(String sessionid, String fromTime,
 			long limit, String device_id, String type_ids, String src_ip,
-			String dst_ip, boolean fromHbase) throws Exception {
+			String dst_ip, String fromHbase) throws Exception {
 		List<Object> list = new ArrayList<Object>();
 
+		boolean fromhbase;
+		if(fromHbase!=null&&!fromHbase.isEmpty()){
+			fromhbase= fromHbase.equalsIgnoreCase("false")?false:true;
+		}else{
+			fromhbase=this.getDataFromHbase();
+		}
+		
+		
 		long now = Calendar.getInstance().getTimeInMillis();
 		long begin = now - 24 * 3600 * 1000;
 		String timekey = "space_key" + "_" + sessionid;
@@ -393,7 +417,7 @@ public class EventSpaceDao extends BaseDao {
 			}
 		}
 
-		if (fromHbase) {
+		if (fromhbase) {
 			list = HbaseBaseOP.getInstance().get_space_key_list(begin, limit,
 					device_id, typenames, src_ip, dst_ip);
 		} else {

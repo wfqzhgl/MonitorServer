@@ -24,10 +24,16 @@ public class EventGlobalDao extends BaseDao {
 	}
 
 	public List<Object> get_global_list(String type_id, String level,
-			String src_ip, String dst_ip, String begin, String end, long limit,boolean fromHbase) {
+			String src_ip, String dst_ip, String begin, String end, long limit,String fromHbase) {
 		List<Object> list = new ArrayList<Object>();
-
-		if (fromHbase) {
+		boolean fromhbase;
+		if(fromHbase!=null&&!fromHbase.isEmpty()){
+			fromhbase= fromHbase.equalsIgnoreCase("false")?false:true;
+		}else{
+			fromhbase=this.getDataFromHbase();
+		}
+		
+		if (fromhbase) {
 			List<String> type_list = null;
 			if (!type_id.isEmpty()) {
 				type_list = new ArrayList<String>();

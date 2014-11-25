@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
@@ -60,6 +61,9 @@ public class AuthDao extends BaseDao {
 		try {
 			jdbcTemplate.execute(String.format(sql, username, passwd1, admin));
 			return new AuthVO(0, "添加成功.", 0);
+		}catch (DuplicateKeyException e){
+//			e.printStackTrace();
+			return new AuthVO(1, "添加失败: 用户名已存在." , 0);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return new AuthVO(1, "添加失败:" + e.getMessage(), 0);

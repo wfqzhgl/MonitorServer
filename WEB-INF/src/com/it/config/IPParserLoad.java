@@ -1,12 +1,5 @@
 package com.it.config;
 
-/************************************************************************
- *1.fix ip to  int overflow issue
- *2.reduce memory use
- *3.clean the code ,make int more shorter and simple
- *4.default limit  size of ip data 17monipdb.dat is 2GB（not test yet）。  
- ************************************************************************/
-
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -20,6 +13,7 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -27,6 +21,8 @@ import net.sf.json.JSONObject;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 
+import com.it.config.csvip.CsvIPParser;
+import com.it.config.csvip.GeoInfo;
 import com.it.config.load.ConfigLoad;
 import com.it.util.Utils;
 import com.it.vo.City;
@@ -41,44 +37,67 @@ import com.maxmind.geoip2.record.Subdivision;
 public class IPParserLoad extends ConfigLoad {
 
 	private static final IPParserLoad instance = new IPParserLoad();
+	private static boolean debug = false;
 
 	public static IPParserLoad getInstance() {
+		if (debug) {
+			ip_data_file = "WEB-INF/17monipdb.dat";
+			country_file = "WEB-INF/country.txt";
+			ip_data_maxmind = "WEB-INF/GeoLite2-City.mmdb";
+			ip_data_custom = "WEB-INF/ipdata.csv";
+			instance.load();
+		}
 		return instance;
 	}
 
-	// private static String ip_data_file = "WEB-INF/17monipdb.dat";
-	// private static String country_file = "WEB-INF/country.txt";
-	private String ip_data_maxmind = null;
-	private String ip_data_file = null;
-	private String country_file = null;
+	// 自定义优先级最高
+	private static CsvIPParser customIPParser = CsvIPParser.getInstance();
+	private static String ip_data_custom = null;
+	private static String ip_data_file = null;
+	private static String country_file = null;
+	private static String ip_data_maxmind = null;
 	private static DatabaseReader reader = null;
 
-	private static DataInputStream inputStream = null;
-	private static long fileLength = -1;
-	private static int dataLength = -1;
-	private static Map<String, String> cacheMap = null;
-	private static byte[] allData = null;
+	private static int offset;
+	private static int[] index = new int[256];
+	private static ByteBuffer dataBuffer;
+	private static ByteBuffer indexBuffer;
+	private static ReentrantLock lock = new ReentrantLock();
 
 	private static Map<String, String> country_code_map = new HashMap<String, String>();
 
 	@Override
 	public void load() {
 		logger.debug("IPParserLoad Load Start...");
+		// load custom
+		customIPParser.load();
 
-		File file = new File(this.ip_data_file);
+		// load other
+		File ipFile = new File(ip_data_file);
+		FileInputStream fin = null;
 		try {
-			inputStream = new DataInputStream(new FileInputStream(file));
-			fileLength = file.length();
-			cacheMap = new HashMap<String, String>();
-			if (fileLength > Integer.MAX_VALUE) {
-				throw new Exception("the filelength over 2GB");
+			dataBuffer = ByteBuffer.allocate(Long.valueOf(ipFile.length())
+					.intValue());
+			fin = new FileInputStream(ipFile);
+			int readBytesLength;
+			byte[] chunk = new byte[4096];
+			while (fin.available() > 0) {
+				readBytesLength = fin.read(chunk);
+				dataBuffer.put(chunk, 0, readBytesLength);
 			}
+			dataBuffer.position(0);
+			int indexLength = dataBuffer.getInt();
+			byte[] indexBytes = new byte[indexLength];
+			dataBuffer.get(indexBytes, 0, indexLength - 4);
+			indexBuffer = ByteBuffer.wrap(indexBytes);
+			indexBuffer.order(ByteOrder.LITTLE_ENDIAN);
+			offset = indexLength;
 
-			dataLength = (int) fileLength;
-			allData = new byte[dataLength];
-			inputStream.read(allData, 0, dataLength);
-			dataLength = (int) getbytesTolong(allData, 0, 4,
-					ByteOrder.BIG_ENDIAN);
+			int loop = 0;
+			while (loop++ < 256) {
+				index[loop - 1] = indexBuffer.getInt();
+			}
+			indexBuffer.order(ByteOrder.BIG_ENDIAN);
 
 			String content = FileUtils.readFileToString(new File(
 					this.country_file));
@@ -101,20 +120,6 @@ public class IPParserLoad extends ConfigLoad {
 				e.printStackTrace();
 				logger.error("!!!IPParserLoad error." + e.getMessage());
 			}
-
-			// for (Map.Entry<String, String> ent : country_code_map.entrySet())
-			// {
-			// logger.debug(ent.getKey() + ":" + ent.getValue());
-			// }
-
-			// logger.debug("106.39.23.67:"+IPParserLoad.parseIP("106.39.23.67"));
-			// logger.debug("58.192.191.255:"+IPParserLoad.parseIP("58.192.191.255"));
-			// logger.debug("218.56.0.202:"+IPParserLoad.findGeography("218.56.0.202"));
-			// logger.debug("60.171.139.143:"+IPParserLoad.findGeography("60.171.139.143"));
-			// logger.debug("222.23.243.122:"+IPParserLoad.findGeography("222.23.243.122"));
-			// logger.debug("48.255.255.2:"+IPParserLoad.findGeography("48.255.255.2"));
-			// logger.debug("114.80.68.2:"+IPParserLoad.findGeography("114.80.68.2"));
-			// logger.debug("114.80.68.2:"+IPParserLoad.findGeography("192.168.1.1"));
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -172,26 +177,31 @@ public class IPParserLoad extends ConfigLoad {
 		return temp;
 	}
 
-	private static long ip2long(String ip) throws UnknownHostException {
-		InetAddress address = InetAddress.getByName(ip);
-		byte[] bytes = address.getAddress();
-		long reslut = getbytesTolong(bytes, 0, 4, ByteOrder.BIG_ENDIAN);
-		return reslut;
+	private static int str2Ip(String ip) {
+		String[] ss = ip.split("\\.");
+		int a, b, c, d;
+		a = Integer.parseInt(ss[0]);
+		b = Integer.parseInt(ss[1]);
+		c = Integer.parseInt(ss[2]);
+		d = Integer.parseInt(ss[3]);
+		return (a << 24) | (b << 16) | (c << 8) | d;
 	}
 
-	private static int getIntByBytes(byte[] b, int offSet) {
-		if (b == null || (b.length < (offSet + 3))) {
-			return -1;
-		}
+	public static long ip2long(String ip) {
+		return int2long(str2Ip(ip));
+	}
 
-		byte[] bytes = Arrays.copyOfRange(allData, offSet, offSet + 3);
-		byte[] bs = new byte[4];
-		bs[3] = 0;
-		for (int i = 0; i < 3; i++) {
-			bs[i] = bytes[i];
+	private static long int2long(int i) {
+		long l = i & 0x7fffffffL;
+		if (i < 0) {
+			l |= 0x080000000L;
 		}
+		return l;
+	}
 
-		return (int) getbytesTolong(bs, 0, 4, ByteOrder.LITTLE_ENDIAN);
+	private static long bytesToLong(byte a, byte b, byte c, byte d) {
+		return int2long((((a & 0xff) << 24) | ((b & 0xff) << 16)
+				| ((c & 0xff) << 8) | (d & 0xff)));
 	}
 
 	public static IpInfo parseIP(String IP) {
@@ -202,7 +212,35 @@ public class IPParserLoad extends ConfigLoad {
 		if (!IP.contains(".")) {
 			IP = Utils.longToIp(Long.parseLong(IP));
 		}
-		String res[] = findGeography(IP).split("\\t");
+
+		String[] res = null;
+		// 匹配自定义ip库
+		GeoInfo geoinfo = customIPParser.parseIP(IP);
+		if (geoinfo != null) {
+			logger.debug("----parse ip from custom:" + IP);
+			// 外国
+			if (!geoinfo.getCountry().equals("中国")) {
+				Country country = GeoLoad.getInstance().getCountryByName(
+						geoinfo.getCountry());
+				String country_code = country == null ? "" : country.getId()
+						+ "";
+				return new IpInfo(IP, geoinfo.getCountry(), country_code,
+						geoinfo.getRegion() == null ? "" : geoinfo.getRegion(),
+						"", "", "", "");
+			}
+			// 中国
+			if (geoinfo.getCity() != null && !geoinfo.getCity().isEmpty()) {
+				res = new String[] { geoinfo.getCountry(), geoinfo.getRegion(),
+						geoinfo.getCity() };
+			} else {
+				res = new String[] { geoinfo.getCountry(), geoinfo.getRegion() };
+			}
+
+		}
+
+		if (res == null) {
+			res = find(IP);
+		}
 		if (res.length == 2) {
 			// 外国
 			if (res[0].equalsIgnoreCase(res[1])) {
@@ -245,7 +283,8 @@ public class IPParserLoad extends ConfigLoad {
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-					logger.error("=============ip parse error:"+e.getMessage()+",ip="+IP);
+					logger.error("=============ip parse error:"
+							+ e.getMessage() + ",ip=" + IP);
 				}
 
 				return new IpInfo(IP, res[0],
@@ -312,76 +351,45 @@ public class IPParserLoad extends ConfigLoad {
 	/**
 	 * @param address
 	 * @return
+	 * @throws
 	 */
-	public static String findGeography(String address) {
-		if (StringUtils.isBlank(address)) {
-			return "illegal address";
-		}
-
-		if (dataLength < 4 || allData == null) {
-			return "illegal ip data";
-		}
-
-		String ip = address;
-		logger.debug("findGeography=========ip=" + ip);
-		// String ip = "127.0.0.1";
-		// try {
-		// ip = Inet4Address.getByName(address).getHostAddress();
-		// } catch (UnknownHostException e) {
-		// e.printStackTrace();
-		// }
-		String[] ipArray = StringUtils.split(ip, ".");
-		long ipHeadValue = Long.parseLong(ipArray[0]);
-		if (ipArray.length != 4 || ipHeadValue < 0 || ipHeadValue > 255) {
-			return "illegal ip";
-		}
-
-		if (cacheMap.containsKey(ip)) {
-			return cacheMap.get(ip);
-		}
-
-		long numIp = 1;
-		try {
-			numIp = ip2long(address);
-		} catch (UnknownHostException e1) {
-			e1.printStackTrace();
-		}
-
-		int tempOffSet = (int) ipHeadValue * 4 + 4;
-		long start = getbytesTolong(allData, tempOffSet, 4,
-				ByteOrder.LITTLE_ENDIAN);
-		int max_len = dataLength - 1028;
-		long resultOffSet = 0;
-		int resultSize = 0;
-
-		for (start = start * 8 + 1024; start < max_len; start += 8) {
-			if (getbytesTolong(allData, (int) start + 4, 4,
-					ByteOrder.BIG_ENDIAN) >= numIp) {
-				resultOffSet = getIntByBytes(allData, (int) (start + 4 + 4));
-				resultSize = (char) allData[(int) start + 7 + 4];
+	public static String[] find(String ip) {
+		int ip_prefix_value = new Integer(ip.substring(0, ip.indexOf(".")));
+		long ip2long_value = ip2long(ip);
+		int start = index[ip_prefix_value];
+		int max_comp_len = offset - 1028;
+		long index_offset = -1;
+		int index_length = -1;
+		byte b = 0;
+		for (start = start * 8 + 1024; start < max_comp_len; start += 8) {
+			if (int2long(indexBuffer.getInt(start)) >= ip2long_value) {
+				index_offset = bytesToLong(b, indexBuffer.get(start + 6),
+						indexBuffer.get(start + 5), indexBuffer.get(start + 4));
+				index_length = 0xFF & indexBuffer.get(start + 7);
 				break;
 			}
 		}
 
-		if (resultOffSet <= 0) {
-			return "resultOffSet too small";
-		}
-
-		byte[] add = Arrays.copyOfRange(allData, (int) (dataLength
-				+ resultOffSet - 1024),
-				(int) (dataLength + resultOffSet - 1024 + resultSize));
+		byte[] areaBytes;
+		lock.lock();
 		try {
-			if (add == null) {
-				cacheMap.put(ip, new String("no data found!!"));
-			} else {
-				cacheMap.put(ip, new String(add, "UTF-8"));
-			}
-
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
+			dataBuffer.position(offset + (int) index_offset - 1024);
+			areaBytes = new byte[index_length];
+			dataBuffer.get(areaBytes, 0, index_length);
+		} finally {
+			lock.unlock();
 		}
 
-		return cacheMap.get(ip);
+		return new String(areaBytes).split("\t");
+	}
+
+	public String getIp_data_custom() {
+		return ip_data_custom;
+	}
+
+	public void setIp_data_custom(String ip_data_custom) {
+		this.ip_data_custom = ip_data_custom;
+		customIPParser.setIp_data_file(ip_data_custom);
 	}
 
 	public static void main(String args[]) {
@@ -390,8 +398,14 @@ public class IPParserLoad extends ConfigLoad {
 		// System.out.println(s.split("\\t").length);
 
 		try {
-			System.out.println(ip2long("200.12.2.4"));
-		} catch (UnknownHostException e) {
+			String IP = "222.222.24.31";
+			System.out.println(ip2long(IP));
+
+			IpInfo info = IPParserLoad.getInstance().parseIP(IP);
+			System.out.println(info.getCountry() + info.getProvince()
+					+ info.getCity()+info.getCountry_code());
+
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

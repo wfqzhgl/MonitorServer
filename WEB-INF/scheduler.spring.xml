@@ -44,7 +44,7 @@
 	
 	<bean id="schedulerConfigLoadTrigger"		class="org.springframework.scheduling.quartz.CronTriggerBean">
 		<property name="jobDetail" ref="schedulerConfigLoadlJob" />
-		<property name="cronExpression" value="0 0/3 * * * ?"/>
+		<property name="cronExpression" value="0 0/10 * * * ?"/>
 	</bean>
 	
 	<bean id="schedulerHourlyFlowJobTrigger"		class="org.springframework.scheduling.quartz.CronTriggerBean">
