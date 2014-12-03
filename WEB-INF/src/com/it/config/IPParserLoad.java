@@ -282,7 +282,7 @@ public class IPParserLoad extends ConfigLoad {
 
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+//					e.printStackTrace();
 					logger.error("=============ip parse error:"
 							+ e.getMessage() + ",ip=" + IP);
 				}

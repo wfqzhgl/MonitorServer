@@ -34,13 +34,15 @@ public class CsvIPParser extends ConfigLoad {
 	public GeoInfo parseIP(String ip) {
 		try {
 			return lookupIp.getLocation(ip);
-		} catch (UnknownHostException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+//			e.printStackTrace();
+			logger.error("======CsvIPParser error:"+e.getMessage());
 		}
 		return null;
 	}
 
+	
 	public String getIp_data_file() {
 		return ip_data_file;
 	}

@@ -474,7 +474,7 @@ public class HbaseBaseOP {
 
 					if (sip.isEmpty() || dip.isEmpty() || sip.contains(".")
 							|| dip.contains(".")) {
-						logger.info("!!!! ip format error:sip=" + sip + ",dip="
+						logger.info("!!!! ip format :sip=" + sip + ",dip="
 								+ dip);
 						continue;
 					}

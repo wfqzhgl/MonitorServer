@@ -55,6 +55,43 @@ public class EventSpaceDao extends BaseDao {
 
 	}
 
+	private Map<String, String> get_last_data_from_redis(String key) {
+		try {
+			String data = JedisUtils.getInstance().lget(key);
+			if (data == null || data.isEmpty()) {
+				return null;
+			}
+			Map<String, String> map = null;
+			JSONObject o = JSONObject.fromObject(data);
+
+			map = (Map<String, String>) JSONObject.toBean((JSONObject) o,
+					Map.class);
+			return map;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+
+	}
+
+	private void set_last_data_to_redis(String key, Map<String, String> data) {
+		if (data == null || data.isEmpty()) {
+			return;
+		}
+		try {
+			JSONObject o = JSONObject.fromObject(data);
+			long len = JedisUtils.getInstance().llen(key);
+			if (len > 0) {
+				JedisUtils.getInstance().rpop(key);
+			}
+			JedisUtils.getInstance().lpush(key, o.toString());
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
 	private void set_to_redis(String key, String v) {
 		JedisUtils.getInstance().set(key, v);
 		logger.debug("==== set to redis: key=" + key + ",v=" + v);
@@ -64,6 +101,7 @@ public class EventSpaceDao extends BaseDao {
 	public List<Object> get_space_map_list_from_hbase(String sessionid,
 			Map<String, String> params) throws IOException,
 			NumberFormatException, ParseException {
+		String key_last_data = "key_last_data";
 		List<Object> list = new ArrayList<Object>();
 
 		// get last begintime from cache JedisUtils
@@ -105,34 +143,67 @@ public class EventSpaceDao extends BaseDao {
 						Long.parseLong(limit), elist);
 
 		EventMapListVO vo = null;
+		// config key:map_data_from_hbase_reverse
+		boolean reverse = this.getIsReverseMapData();
+
+		Map<String, String> map_last_data = new HashMap<String, String>();
+
 		for (Map<String, String> map : hlist) {
-			vo=new EventMapListVO();
+			vo = new EventMapListVO();
 			vo.setType(showtype);
 			List<Map<String, String>> msglist = new ArrayList<Map<String, String>>();
 			List<Map<String, String>> datalist = new ArrayList<Map<String, String>>();
-			Map<String,String> tmpmap = new HashMap<String,String>();
+			Map<String, String> tmpmap = new HashMap<String, String>();
 			tmpmap.put("msg_title", map.get("msg_title"));
 			tmpmap.put("msg_data", map.get("msg_data"));
 			msglist.add(tmpmap);
-			
-			tmpmap = new HashMap<String,String>();
-			tmpmap.put("sip", map.get("sip"));
-			tmpmap.put("dip", map.get("dip"));
-			
-			tmpmap.put("d_country_code", map.get("d_country_code"));
-			tmpmap.put("d_country_name", map.get("d_country_name"));
-			tmpmap.put("d_province_code", map.get("d_province_code"));
-			tmpmap.put("d_province_name", map.get("d_province_name"));
-			tmpmap.put("d_city_code", map.get("d_city_code"));
-			tmpmap.put("d_city_name", map.get("d_city_name"));
-			tmpmap.put("s_country_code", map.get("s_country_code"));
-			tmpmap.put("s_country_name", map.get("s_country_name"));
-			tmpmap.put("s_province_code", map.get("s_province_code"));
-			tmpmap.put("s_province_name", map.get("s_province_name"));
-			tmpmap.put("s_city_code", map.get("s_city_code"));
-			tmpmap.put("s_city_name", map.get("s_city_name"));
+
+			tmpmap = new HashMap<String, String>();
+
+			if (reverse && map.get("s_country_name").equalsIgnoreCase("中国")
+					&& !map.get("d_country_name").equalsIgnoreCase("中国")) {
+				tmpmap.put("sip", map.get("dip"));
+				tmpmap.put("s_country_code", map.get("d_country_code"));
+				tmpmap.put("s_country_name", map.get("d_country_name"));
+				tmpmap.put("s_province_code", map.get("d_province_code"));
+				tmpmap.put("s_province_name", map.get("d_province_name"));
+				tmpmap.put("s_city_code", map.get("d_city_code"));
+				tmpmap.put("s_city_name", map.get("d_city_name"));
+
+				tmpmap.put("dip", map.get("sip"));
+				tmpmap.put("d_country_code", map.get("s_country_code"));
+				tmpmap.put("d_country_name", map.get("s_country_name"));
+				tmpmap.put("d_province_code", map.get("s_province_code"));
+				tmpmap.put("d_province_name", map.get("s_province_name"));
+				tmpmap.put("d_city_code", map.get("s_city_code"));
+				tmpmap.put("d_city_name", map.get("s_city_name"));
+
+			} else {
+				tmpmap.put("sip", map.get("sip"));
+				tmpmap.put("s_country_code", map.get("s_country_code"));
+				tmpmap.put("s_country_name", map.get("s_country_name"));
+				tmpmap.put("s_province_code", map.get("s_province_code"));
+				tmpmap.put("s_province_name", map.get("s_province_name"));
+				tmpmap.put("s_city_code", map.get("s_city_code"));
+				tmpmap.put("s_city_name", map.get("s_city_name"));
+
+				tmpmap.put("dip", map.get("dip"));
+				tmpmap.put("d_country_code", map.get("d_country_code"));
+				tmpmap.put("d_country_name", map.get("d_country_name"));
+				tmpmap.put("d_province_code", map.get("d_province_code"));
+				tmpmap.put("d_province_name", map.get("d_province_name"));
+				tmpmap.put("d_city_code", map.get("d_city_code"));
+				tmpmap.put("d_city_name", map.get("d_city_name"));
+			}
+
+			if (tmpmap.get("d_country_name").equalsIgnoreCase("中国")
+					&& !tmpmap.get("s_country_name").equalsIgnoreCase("中国")) {
+				map_last_data = tmpmap;
+
+			}
+
 			datalist.add(tmpmap);
-			
+
 			vo.setMsglist(msglist);
 			vo.setDatalist(datalist);
 			list.add(vo);
@@ -141,6 +212,18 @@ public class EventSpaceDao extends BaseDao {
 		// update time
 		set_to_redis(timekey,
 				String.valueOf(System.currentTimeMillis() / 1000 - 20));
+
+		// update last data
+		if (!map_last_data.isEmpty()) {
+			set_last_data_to_redis(key_last_data, map_last_data);
+		}
+
+		if (list.isEmpty()) {
+			Map<String, String> map = get_last_data_from_redis(key_last_data);
+			if (map != null && !map.isEmpty()) {
+				list.add(map);
+			}
+		}
 
 		return list;
 
@@ -241,13 +324,12 @@ public class EventSpaceDao extends BaseDao {
 			String fromTime, long limit, String fromHbase) throws Exception {
 
 		boolean fromhbase;
-		if(fromHbase!=null&&!fromHbase.isEmpty()){
-			fromhbase= fromHbase.equalsIgnoreCase("false")?false:true;
-		}else{
-			fromhbase=this.getDataFromHbase();
+		if (fromHbase != null && !fromHbase.isEmpty()) {
+			fromhbase = fromHbase.equalsIgnoreCase("false") ? false : true;
+		} else {
+			fromhbase = this.getDataFromHbase();
 		}
-		
-				
+
 		List<Object> list = new ArrayList<Object>();
 
 		long now = Calendar.getInstance().getTimeInMillis();
@@ -328,17 +410,17 @@ public class EventSpaceDao extends BaseDao {
 	 * @throws Exception
 	 */
 	public List<Object> get_space_part_list(String sessionid, String fromTime,
-			long limit, String src_country, String dst_address,
-			String fromHbase) throws Exception {
+			long limit, String src_country, String dst_address, String fromHbase)
+			throws Exception {
 		List<Object> list = new ArrayList<Object>();
 
 		boolean fromhbase;
-		if(fromHbase!=null&&!fromHbase.isEmpty()){
-			fromhbase= fromHbase.equalsIgnoreCase("false")?false:true;
-		}else{
-			fromhbase=this.getDataFromHbase();
+		if (fromHbase != null && !fromHbase.isEmpty()) {
+			fromhbase = fromHbase.equalsIgnoreCase("false") ? false : true;
+		} else {
+			fromhbase = this.getDataFromHbase();
 		}
-		
+
 		long now = Calendar.getInstance().getTimeInMillis();
 		long begin = now - 24 * 3600 * 1000;
 		String timekey = "space_part" + "_" + sessionid;
@@ -392,13 +474,12 @@ public class EventSpaceDao extends BaseDao {
 		List<Object> list = new ArrayList<Object>();
 
 		boolean fromhbase;
-		if(fromHbase!=null&&!fromHbase.isEmpty()){
-			fromhbase= fromHbase.equalsIgnoreCase("false")?false:true;
-		}else{
-			fromhbase=this.getDataFromHbase();
+		if (fromHbase != null && !fromHbase.isEmpty()) {
+			fromhbase = fromHbase.equalsIgnoreCase("false") ? false : true;
+		} else {
+			fromhbase = this.getDataFromHbase();
 		}
-		
-		
+
 		long now = Calendar.getInstance().getTimeInMillis();
 		long begin = now - 24 * 3600 * 1000;
 		String timekey = "space_key" + "_" + sessionid;
@@ -460,6 +541,18 @@ public class EventSpaceDao extends BaseDao {
 
 		String s = this.config.getConfigData(Constant.MAP_DATA_FROM_FILE,
 				"false");
+		if (s.equalsIgnoreCase("false")) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	public boolean getIsReverseMapData() {
+
+		String s = this.config.getConfigData("map_data_from_hbase_reverse",
+				"true");
+		logger.debug("----map_data_from_hbase_reverse:" + s);
 		if (s.equalsIgnoreCase("false")) {
 			return false;
 		} else {

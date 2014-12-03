@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.sf.json.JSONObject;
+
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
@@ -218,9 +220,15 @@ public class Utils {
 			
 			Map<String,String> map = new HashMap();
 			map.put("123", "123");
-			test1(map);
-			test2(map);
-			System.out.println(map.keySet());
+			map.put("ssdfs", "中国");
+			JSONObject o = JSONObject.fromObject(map);
+			String json = o.toString();
+			System.out.println(json);
+			
+			JSONObject oo = JSONObject.fromObject(json);
+			Map<String, String> mm = (Map<String, String>) JSONObject.toBean(oo,
+					Map.class);
+			System.out.println(mm.get("123"));
 			
 //			System.out.println(get_date_string_from_hbase_key("65459173422220000"));
 			//
@@ -238,7 +246,7 @@ public class Utils {
 
 //			System.out.println(ipToLong("210.130.202.122"));
 //
-//			System.out.println(longToIp(3531786874L));
+//			System.out.println(longToIp(1099511627703L));
 //
 //			System.out.println(getSqlByIps("lip", Arrays.asList(new String[] {
 //					"192.168.1.1", "192.168.2.3" })));
@@ -251,13 +259,13 @@ public class Utils {
 			
 			
 //			System.out.println(String.format("asddfs%ssfsf", "1111"));
-			System.out.println(
-			Utils.getHbaseKeyByTimeStamp(System
-					.currentTimeMillis() - 1800000 * 1));
+//			System.out.println(
+//			Utils.getHbaseKeyByTimeStamp(System
+//					.currentTimeMillis() - 1800000 * 1));
 			
 //			System.out.println("1000,12,13".contains("1000"));
 			
-			System.out.println(System.currentTimeMillis());
+//			System.out.println(System.currentTimeMillis());
 					
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
