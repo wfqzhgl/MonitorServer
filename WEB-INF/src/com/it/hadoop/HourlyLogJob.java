@@ -9,11 +9,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.it.config.DeviceConfigLoad;
-import com.it.config.FlowDeviceConfig;
 import com.it.config.IPParserLoad;
 import com.it.config.load.ConfigLoad;
 import com.it.util.Constant;
-import com.it.util.Utils;
 import com.it.vo.HourlyLogVO;
 import com.it.vo.IpInfo;
 

@@ -9,7 +9,7 @@ import org.apache.hadoop.io.Writable;
 public interface Constant {
 	String CONSTANT_TEST ="test";
 	String LIMIT_KEY = "limit";
-	String LIMIT_DEFAULT = "10";
+	String LIMIT_DEFAULT = "20";
 	String PARAMETER_NAME_MODEL ="m";
 	String PARAMETER_NAME_FUNCTION ="f";
 	String PARAMETER_NAME_USERNAME ="u";

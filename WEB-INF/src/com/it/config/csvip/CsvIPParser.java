@@ -1,6 +1,5 @@
 package com.it.config.csvip;
 
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;

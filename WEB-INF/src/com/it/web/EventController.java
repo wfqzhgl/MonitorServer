@@ -18,11 +18,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.hadoop.hbase.MasterNotRunningException;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.log4j.Logger;
 
-import com.it.hadoop.test.HbaseTest;
 import com.it.service.EventService;
 import com.it.util.Constant;
 import com.it.vo.BaseVO;
@@ -139,12 +136,6 @@ public class EventController extends HttpServlet {
 			sessionid = UUID.randomUUID().toString();
 		}
 
-		if (begin.isEmpty()) {
-			Calendar cal = Calendar.getInstance();
-			cal.add(Calendar.DAY_OF_MONTH, -2);
-			begin = Constant.DEFAULT_DATE_HOUR_FORMAT.format(cal.getTime());
-		}
-
 		String begintime = request
 				.getParameter(Constant.PARAMETER_MAPLIST_BEGINTIME);
 		
@@ -167,6 +158,14 @@ public class EventController extends HttpServlet {
 				if (begintime != null && !begintime.isEmpty()) {
 					params.put(Constant.PARAMETER_MAPLIST_BEGINTIME, begintime);
 				}
+				
+				if (begin != null && !begin.isEmpty()) {
+					params.put(Constant.QUERY_BEGIN, begin);
+				}
+				if (end != null && !end.isEmpty()) {
+					params.put(Constant.QUERY_END, end);
+				}
+				
 				params.put(Constant.PARAMETER_MAPLIST_SHOWTYPE, showtype);
 				params.put(Constant.PARAMETER_MAPLIST_EVENTTYPE, eventtype);
 				params.put(Constant.LIMIT_KEY, limit);
@@ -234,6 +233,11 @@ public class EventController extends HttpServlet {
 
 			}
 		} else if (model.equalsIgnoreCase("type")) {
+			if (begin.isEmpty()) {
+				Calendar cal = Calendar.getInstance();
+				cal.add(Calendar.DAY_OF_MONTH, -2);
+				begin = Constant.DEFAULT_DATE_HOUR_FORMAT.format(cal.getTime());
+			}
 			if(end.isEmpty()){
 				end = Constant.DEFAULT_DATE_HOUR_FORMAT.format(Calendar.getInstance().getTime());
 			}
@@ -252,6 +256,11 @@ public class EventController extends HttpServlet {
 
 			}
 		} else if (model.equalsIgnoreCase("time")) {
+			if (begin.isEmpty()) {
+				Calendar cal = Calendar.getInstance();
+				cal.add(Calendar.DAY_OF_MONTH, -2);
+				begin = Constant.DEFAULT_DATE_HOUR_FORMAT.format(cal.getTime());
+			}
 			if (func.equalsIgnoreCase("list")) {
 				list = EventService.getInstance().get_time_list(begin, end, x,
 						type_id, address, ip);
@@ -277,6 +286,11 @@ public class EventController extends HttpServlet {
 
 			}
 		} else if (model.equalsIgnoreCase("global")) {
+			if (begin.isEmpty()) {
+				Calendar cal = Calendar.getInstance();
+				cal.add(Calendar.DAY_OF_MONTH, -2);
+				begin = Constant.DEFAULT_DATE_HOUR_FORMAT.format(cal.getTime());
+			}
 			if (func.equalsIgnoreCase("list")) {
 
 				list = EventService.getInstance().get_global_list(type_id,

@@ -1,16 +1,12 @@
 package com.it.config;
 
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -19,7 +15,6 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
 
 import com.it.config.csvip.CsvIPParser;
 import com.it.config.csvip.GeoInfo;
@@ -30,7 +25,6 @@ import com.it.vo.Country;
 import com.it.vo.IpInfo;
 import com.it.vo.Province;
 import com.maxmind.geoip2.DatabaseReader;
-import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CityResponse;
 import com.maxmind.geoip2.record.Subdivision;
 
@@ -117,7 +111,7 @@ public class IPParserLoad extends ConfigLoad {
 				reader = new DatabaseReader.Builder(database).build();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+//				e.printStackTrace();
 				logger.error("!!!IPParserLoad error." + e.getMessage());
 			}
 
@@ -276,13 +270,15 @@ public class IPParserLoad extends ConfigLoad {
 						}
 						String province_code = province == null ? "" : province
 								.getId() + "";
+						String province_name = province == null ? "" : province
+								.getName();
 						return new IpInfo(IP, res[0], country_code,
-								province.getName(), province_code, "", "", "");
+								province_name, province_code, "", "", "");
 					}
 
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
-//					e.printStackTrace();
+					e.printStackTrace();
 					logger.error("=============ip parse error:"
 							+ e.getMessage() + ",ip=" + IP);
 				}
@@ -403,7 +399,7 @@ public class IPParserLoad extends ConfigLoad {
 
 			IpInfo info = IPParserLoad.getInstance().parseIP(IP);
 			System.out.println(info.getCountry() + info.getProvince()
-					+ info.getCity()+info.getCountry_code());
+					+ info.getCity() + info.getCountry_code());
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block

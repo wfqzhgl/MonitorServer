@@ -1,17 +1,8 @@
 package com.it.service;
 
-import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.it.dao.AuthDao;
-import com.it.dao.EventGlobalDao;
-import com.it.dao.EventSpaceDao;
-import com.it.dao.EventTimeDao;
-import com.it.dao.EventTypeDao;
-import com.it.dao.MonitorDeviceDao;
-import com.it.dao.MonitorFlowDao;
 import com.it.vo.AuthVO;
 
 @Service("AuthService")

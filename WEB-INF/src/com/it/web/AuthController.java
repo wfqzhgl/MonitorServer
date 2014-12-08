@@ -2,28 +2,17 @@ package com.it.web;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
 
 import javax.servlet.ServletException;
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import net.sf.json.JSONObject;
-
-import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 
 import com.it.service.AuthService;
-import com.it.service.EventService;
-import com.it.service.MonitorService;
 import com.it.util.Constant;
 import com.it.vo.AuthVO;
-import com.it.vo.BaseVO;
 
 /**
  * 

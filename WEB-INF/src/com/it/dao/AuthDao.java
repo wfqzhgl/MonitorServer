@@ -2,23 +2,14 @@ package com.it.dao;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Random;
-import java.util.Set;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
-import com.it.config.DeviceConfigLoad;
-import com.it.hadoop.HbaseBaseOP;
 import com.it.vo.AuthVO;
-import com.it.vo.DeviceStatusVO;
 
 @Repository
 public class AuthDao extends BaseDao {

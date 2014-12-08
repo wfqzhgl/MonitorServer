@@ -35,7 +35,6 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import org.jredis.ri.alphazero.support.Log;
 
 import com.it.config.BaseConfigLoad;
 import com.it.config.DeviceConfigLoad;
@@ -557,16 +556,26 @@ public class HbaseBaseOP {
 	}
 
 	public List<Map<String, String>> get_space_origin_list(long timeFrom,
-			long limit, List<String> type_names) throws IOException,
-			ParseException {
+			long timeEnd, long limit, List<String> type_names)
+			throws IOException, ParseException {
 
+		boolean custom = false;
 		if (String.valueOf(timeFrom).length() == 10) {
 			timeFrom = timeFrom * 1000;
 		}
+
+		if (timeEnd <= 0) {
+			timeEnd = System.currentTimeMillis() - 20000;
+			custom = true;
+
+		}
+
 		logger.info("-------get request origin list:" + timeFrom + ",limit="
 				+ limit + ",type=" + Arrays.toString(type_names.toArray()));
 
 		List<Map<String, String>> res = new ArrayList<Map<String, String>>();
+		Map<String, Map<String, String>> res_map = new HashMap<String, Map<String, String>>();
+
 		Collection<DeviceVO> devices = DeviceConfigLoad.getInstance()
 				.getDevices();
 
@@ -584,15 +593,14 @@ public class HbaseBaseOP {
 			table = new HTable(conf, tname);
 			scan = new Scan();
 			scan.setCaching(500);
-			String begin = Utils.getHbaseKeyByTimeStamp(System
-					.currentTimeMillis() - 20000);
+			String begin = Utils.getHbaseKeyByTimeStamp(timeEnd);
 			String end = Utils.getHbaseKeyByTimeStamp(timeFrom);
 			scan.setStartRow(begin.getBytes());
 			scan.setStopRow(end.getBytes());
 			ResultScanner results = table.getScanner(scan);
 			for (Result result : results) {
 				tmp = new HashMap<String, String>();
-				// String row = new String(new String(result.getRow()));
+				
 				String dip = "";
 				if (result
 						.containsColumn("log".getBytes(), "dst_ip".getBytes())) {
@@ -607,12 +615,12 @@ public class HbaseBaseOP {
 							"src_ip".getBytes()));
 				}
 
-				String msg_data = "";
-				if (result
-						.containsColumn("log".getBytes(), "logstr".getBytes())) {
-					msg_data = new String(result.getValue("log".getBytes(),
-							"logstr".getBytes()));
-				}
+				// String msg_data = "";
+				// if (result
+				// .containsColumn("log".getBytes(), "logstr".getBytes())) {
+				// msg_data = new String(result.getValue("log".getBytes(),
+				// "logstr".getBytes()));
+				// }
 
 				String event_type = getTypeName(new String(result.getValue(
 						"log".getBytes(), "type".getBytes())));
@@ -629,9 +637,7 @@ public class HbaseBaseOP {
 
 				tmp.put("dip", dinfo.getIp().toString());
 				tmp.put("sip", sinfo.getIp().toString());
-				tmp.put("msg_title", event_type + "(" + sinfo.getCountry()
-						+ "->" + dinfo.getCountry() + ")");
-				tmp.put("msg_data", msg_data);
+				tmp.put("msg_data", event_type);
 				tmp.put("d_country_code", dinfo.getCountry_code());
 				tmp.put("d_country_name", dinfo.getCountry());
 				tmp.put("d_province_code", dinfo.getProvince_code());
@@ -644,26 +650,57 @@ public class HbaseBaseOP {
 				tmp.put("s_province_name", sinfo.getProvince());
 				tmp.put("s_city_code", sinfo.getCity_code());
 				tmp.put("s_city_name", sinfo.getCity());
+				tmp.put("count", "1");
 
-				
 				String row = new String(new String(result.getRow()));
 				String time = Utils.get_date_string_from_hbase_key(row);
+				tmp.put("time", time);
 				
-				logger.info("------- got record:" +"time:"+time+",sip:"+sip+",dip:"+dip+sinfo.getCountry()
-						+ sinfo.getProvince() + "-->" + dinfo.getCountry()
-						+ dinfo.getProvince() + "," + event_type);
-				res.add(tmp);
+				String title = time+" "+tmp.get("sip") + "(" + tmp.get("s_country_name")+ ")"
+						+ "->" +tmp.get("dip")+ "("+ tmp.get("d_country_name")+ ") "+event_type ;
+				
+				tmp.put("msg_title", title);
+				
 
-				if (res.size() >= limit) {
-					logger.info("------- limit got,exiting.");
-					break;
+				if (custom) {
+					String key = sinfo.getCountry() + sinfo.getProvince() + "_"
+							+ dinfo.getCountry() + dinfo.getProvince();
+					if (res_map.containsKey(key)) {
+						Map<String, String> tmpmap = res_map.get(key);
+						tmpmap.put("count", String.valueOf(Integer
+								.parseInt(tmpmap.get("count")) + 1));
+					} else {
+						res_map.put(key, tmp);
+					}
+
+				} else {
+					logger.info("-------  record:" + "time:" + time + ",sip:"
+							+ sip + ",dip:" + dip + sinfo.getCountry()
+							+ sinfo.getProvince() + "-->" + dinfo.getCountry()
+							+ dinfo.getProvince() + "," + event_type);
+
+					res.add(tmp);
+					if (res.size() >= limit || res_map.size() >= limit) {
+						logger.info("------- limit got,exiting0.");
+						break;
+					}
 				}
+
 			}
 			table.close();
 			tip++;
+
+			if (res.size() >= limit || res_map.size() >= limit) {
+				logger.info("------- limit got,exiting1.");
+				break;
+			}
 		}
 
-		logger.debug("---------size of get_space_origin_list:" + res.size());
+		logger.debug("---------size of get_space_origin_list: res="
+				+ res.size() + ",resmap=" + res_map.size());
+		if (res_map.size() > 0) {
+			return new ArrayList(res_map.values());
+		}
 		return res;
 	}
 

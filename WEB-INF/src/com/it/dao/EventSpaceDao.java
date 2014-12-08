@@ -2,6 +2,7 @@ package com.it.dao;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Date;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -9,6 +10,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -103,10 +105,12 @@ public class EventSpaceDao extends BaseDao {
 			NumberFormatException, ParseException {
 		String key_last_data = "key_last_data";
 		List<Object> list = new ArrayList<Object>();
+		// config key:map_data_from_hbase_reverse
+		boolean reverse = this.getIsReverseMapData();
 
 		// get last begintime from cache JedisUtils
 		String timekey = Constant.PARAMETER_MAPLIST_BEGINTIME + "_" + sessionid;
-		String begintime;
+		String begintime = null;
 		if (params.containsKey(Constant.PARAMETER_MAPLIST_BEGINTIME)) {
 			logger.debug("====begintime  in  url:"
 					+ params.get(Constant.PARAMETER_MAPLIST_BEGINTIME));
@@ -120,6 +124,25 @@ public class EventSpaceDao extends BaseDao {
 						.valueOf(System.currentTimeMillis() / 1000 - 3600);
 			}
 		}
+
+		String begin = null;
+		String end = null;
+		if (params.containsKey(Constant.QUERY_BEGIN)) {
+			begin = params.get(Constant.QUERY_BEGIN);
+		}
+		if (params.containsKey(Constant.QUERY_END)) {
+			end = params.get(Constant.QUERY_END);
+		}
+		// 自定义日期查询
+		long begins = 0;
+		long ends = 0;
+		if (begin != null && !begin.isEmpty() && end != null && !end.isEmpty()) {
+			Date bb = Constant.DEFAULT_DATE_FORMAT.parse(begin);
+			Date ee = Constant.DEFAULT_DATE_FORMAT.parse(end);
+			begins = bb.getTime();
+			ends = ee.getTime();
+		}
+
 		// 1单点/2多点/3散列
 		String showtype = params.get(Constant.PARAMETER_MAPLIST_SHOWTYPE);
 
@@ -138,13 +161,18 @@ public class EventSpaceDao extends BaseDao {
 			return get_space_map_list(sessionid, params);
 		}
 
-		List<Map<String, String>> hlist = HbaseBaseOP.getInstance()
-				.get_space_origin_list(Long.parseLong(begintime),
-						Long.parseLong(limit), elist);
+		List<Map<String, String>> hlist = null;
+		if (begins > 0 && ends > 0) {
+			logger.info("------------data from custom time-------");
+			hlist = HbaseBaseOP.getInstance().get_space_origin_list(begins,
+					ends, this.getCustomMapDataSize(), elist);
+		} else {
+			logger.info("------------data from auto time-------");
+			hlist = HbaseBaseOP.getInstance().get_space_origin_list(
+					Long.parseLong(begintime), 0, Long.parseLong(limit), elist);
+		}
 
 		EventMapListVO vo = null;
-		// config key:map_data_from_hbase_reverse
-		boolean reverse = this.getIsReverseMapData();
 
 		Map<String, String> map_last_data = new HashMap<String, String>();
 
@@ -154,14 +182,19 @@ public class EventSpaceDao extends BaseDao {
 			List<Map<String, String>> msglist = new ArrayList<Map<String, String>>();
 			List<Map<String, String>> datalist = new ArrayList<Map<String, String>>();
 			Map<String, String> tmpmap = new HashMap<String, String>();
-			tmpmap.put("msg_title", map.get("msg_title"));
-			tmpmap.put("msg_data", map.get("msg_data"));
-			msglist.add(tmpmap);
-
-			tmpmap = new HashMap<String, String>();
 
 			if (reverse && map.get("s_country_name").equalsIgnoreCase("中国")
 					&& !map.get("d_country_name").equalsIgnoreCase("中国")) {
+				
+				String titile = map.get("time")+" "+map.get("dip") + "(" + map.get("d_country_name")+ ")"
+						+ "->" +map.get("sip")+ "("+ map.get("s_country_name")+ ") "+map.get("msg_data") ;
+				
+				tmpmap.put("msg_title", titile);
+				tmpmap.put("msg_data", map.get("msg_data"));
+				msglist.add(tmpmap);
+
+				tmpmap = new HashMap<String, String>();
+				
 				tmpmap.put("sip", map.get("dip"));
 				tmpmap.put("s_country_code", map.get("d_country_code"));
 				tmpmap.put("s_country_name", map.get("d_country_name"));
@@ -177,8 +210,14 @@ public class EventSpaceDao extends BaseDao {
 				tmpmap.put("d_province_name", map.get("s_province_name"));
 				tmpmap.put("d_city_code", map.get("s_city_code"));
 				tmpmap.put("d_city_name", map.get("s_city_name"));
+				tmpmap.put("time", map.get("time"));
 
 			} else {
+				tmpmap.put("msg_title", map.get("msg_title"));
+				tmpmap.put("msg_data", map.get("msg_data"));
+				msglist.add(tmpmap);
+
+				tmpmap = new HashMap<String, String>();
 				tmpmap.put("sip", map.get("sip"));
 				tmpmap.put("s_country_code", map.get("s_country_code"));
 				tmpmap.put("s_country_name", map.get("s_country_name"));
@@ -194,11 +233,18 @@ public class EventSpaceDao extends BaseDao {
 				tmpmap.put("d_province_name", map.get("d_province_name"));
 				tmpmap.put("d_city_code", map.get("d_city_code"));
 				tmpmap.put("d_city_name", map.get("d_city_name"));
+				tmpmap.put("time", map.get("time"));
 			}
-
+			tmpmap.put("count",
+					map.get("count") == null ? "1" : map.get("count"));
 			if (tmpmap.get("d_country_name").equalsIgnoreCase("中国")
 					&& !tmpmap.get("s_country_name").equalsIgnoreCase("中国")) {
 				map_last_data = tmpmap;
+				String titile = tmpmap.get("time")+" "+tmpmap.get("sip") + "(" + tmpmap.get("s_country_name")+ ")"
+						+ "->" +tmpmap.get("dip")+ "("+ tmpmap.get("d_country_name")+ ") "+map.get("msg_data") ;
+				
+				map_last_data.put("msg_title", titile);
+				map_last_data.put("msg_data", map.get("msg_data"));
 
 			}
 
@@ -209,19 +255,33 @@ public class EventSpaceDao extends BaseDao {
 			list.add(vo);
 		}
 
-		// update time
-		set_to_redis(timekey,
-				String.valueOf(System.currentTimeMillis() / 1000 - 20));
+		// 非自定义日期
+		if (begins == 0 || ends == 0) {
+			// update time
+			set_to_redis(timekey,
+					String.valueOf(System.currentTimeMillis() / 1000 - 20));
 
-		// update last data
-		if (!map_last_data.isEmpty()) {
-			set_last_data_to_redis(key_last_data, map_last_data);
+			// update last data
+			if (!map_last_data.isEmpty()) {
+				set_last_data_to_redis(key_last_data, map_last_data);
+			}
 		}
 
 		if (list.isEmpty()) {
 			Map<String, String> map = get_last_data_from_redis(key_last_data);
 			if (map != null && !map.isEmpty()) {
-				list.add(map);
+				vo = new EventMapListVO();
+				vo.setType(showtype);
+				List<Map<String, String>> msglist = new ArrayList<Map<String, String>>();
+				List<Map<String, String>> datalist = new ArrayList<Map<String, String>>();
+				Map<String, String> tmpmap = new HashMap<String, String>();
+				tmpmap.put("msg_title", map.get("msg_title"));
+				tmpmap.put("msg_data", map.get("msg_data"));
+				msglist.add(tmpmap);
+				datalist.add(map);
+				vo.setMsglist(msglist);
+				vo.setDatalist(datalist);
+				list.add(vo);
 			}
 		}
 
@@ -283,6 +343,7 @@ public class EventSpaceDao extends BaseDao {
 		}
 
 		JSONArray valueList = res.getJSONArray("data");
+		String[] rans = new String[] { "1", "6", "20", "100" };
 		for (Object o : valueList) {
 			JsonConfig jsonConfig = new JsonConfig();
 			jsonConfig.setRootClass(EventMapListVO.class);
@@ -311,6 +372,9 @@ public class EventSpaceDao extends BaseDao {
 				map.put("d_province_code", info.getProvince_code());
 				map.put("d_city_name", info.getCity());
 				map.put("d_city_code", info.getCity_code());
+				// test
+				Random r = new Random();
+				map.put("count", rans[r.nextInt(4)]);
 			}
 
 			list.add(vo);
@@ -558,6 +622,13 @@ public class EventSpaceDao extends BaseDao {
 		} else {
 			return true;
 		}
+	}
+
+	public long getCustomMapDataSize() {
+
+		String s = this.config.getConfigData("map_data_custom_size", "200");
+		logger.debug("----map_data_custom_size:" + s);
+		return Long.parseLong(s);
 	}
 
 	public BaseConfigLoad getConfig() {
