@@ -204,7 +204,14 @@ public class IPParserLoad extends ConfigLoad {
 		}
 
 		if (!IP.contains(".")) {
-			IP = Utils.longToIp(Long.parseLong(IP));
+			try {
+				IP = Utils.longToIp(Long.parseLong(IP));
+			} catch (NumberFormatException e) {
+				// TODO Auto-generated catch block
+//				e.printStackTrace();
+				logger.debug("============IP error:"+IP);
+				return new IpInfo(IP, "未知(无IP)", "", "", "", "", "", "");
+			}
 		}
 
 		String[] res = null;
@@ -278,7 +285,7 @@ public class IPParserLoad extends ConfigLoad {
 
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+//					e.printStackTrace();
 					logger.error("=============ip parse error:"
 							+ e.getMessage() + ",ip=" + IP);
 				}
