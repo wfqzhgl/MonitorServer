@@ -32,6 +32,7 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -598,7 +599,9 @@ public class HbaseBaseOP {
 //			String end = Utils.getHbaseKeyByTimeStamp(timeFrom);
 //			scan.setStartRow(begin.getBytes());
 //			scan.setStopRow(end.getBytes());
+			PageFilter pf =new PageFilter(percount);
 			scan.setMaxResultSize(percount);
+			scan.setFilter(pf);
 			
 			ResultScanner results = table.getScanner(scan);
 			for (Result result : results) {
