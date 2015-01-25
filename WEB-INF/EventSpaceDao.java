@@ -172,16 +172,15 @@ public class EventSpaceDao extends BaseDao {
 					Long.parseLong(begintime), 0, Long.parseLong(limit), elist);
 		}
 
+		EventMapListVO vo = null;
 
 		Map<String, String> map_last_data = new HashMap<String, String>();
 
-		EventMapListVO vo = new EventMapListVO();
-		vo.setType(showtype);
-		List<Map<String, String>> msglist = new ArrayList<Map<String, String>>();
-		List<Map<String, String>> datalist = new ArrayList<Map<String, String>>();
-		
 		for (Map<String, String> map : hlist) {
-			
+			vo = new EventMapListVO();
+			vo.setType(showtype);
+			List<Map<String, String>> msglist = new ArrayList<Map<String, String>>();
+			List<Map<String, String>> datalist = new ArrayList<Map<String, String>>();
 			Map<String, String> tmpmap = new HashMap<String, String>();
 
 			if (reverse && map.get("s_country_name").equalsIgnoreCase("中国")
@@ -250,10 +249,11 @@ public class EventSpaceDao extends BaseDao {
 			}
 
 			datalist.add(tmpmap);
+
+			vo.setMsglist(msglist);
+			vo.setDatalist(datalist);
+			list.add(vo);
 		}
-		vo.setMsglist(msglist);
-		vo.setDatalist(datalist);
-		list.add(vo);
 
 		// 非自定义日期
 		if (begins == 0 || ends == 0) {
@@ -272,8 +272,8 @@ public class EventSpaceDao extends BaseDao {
 			if (map != null && !map.isEmpty()) {
 				vo = new EventMapListVO();
 				vo.setType(showtype);
-				msglist = new ArrayList<Map<String, String>>();
-				datalist = new ArrayList<Map<String, String>>();
+				List<Map<String, String>> msglist = new ArrayList<Map<String, String>>();
+				List<Map<String, String>> datalist = new ArrayList<Map<String, String>>();
 				Map<String, String> tmpmap = new HashMap<String, String>();
 				tmpmap.put("msg_title", map.get("msg_title"));
 				tmpmap.put("msg_data", map.get("msg_data"));

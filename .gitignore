@@ -8,3 +8,4 @@ logs
 bin
 work
 classes
+WEB-INF/lib/*

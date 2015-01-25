@@ -583,6 +583,7 @@ public class HbaseBaseOP {
 		Scan scan;
 		Map<String, String> tmp;
 		int tip = 0;
+		 long percount = limit/3;
 		for (DeviceVO dev : devices) {
 			logger.info("------- at device " + tip);
 			String tname = dev.getGuid() + "_log";
@@ -592,11 +593,13 @@ public class HbaseBaseOP {
 			// }
 			table = new HTable(conf, tname);
 			scan = new Scan();
-			scan.setCaching(500);
-			String begin = Utils.getHbaseKeyByTimeStamp(timeEnd);
-			String end = Utils.getHbaseKeyByTimeStamp(timeFrom);
-			scan.setStartRow(begin.getBytes());
-			scan.setStopRow(end.getBytes());
+			scan.setCaching(200);
+//			String begin = Utils.getHbaseKeyByTimeStamp(timeEnd);
+//			String end = Utils.getHbaseKeyByTimeStamp(timeFrom);
+//			scan.setStartRow(begin.getBytes());
+//			scan.setStopRow(end.getBytes());
+			scan.setMaxResultSize(percount);
+			
 			ResultScanner results = table.getScanner(scan);
 			for (Result result : results) {
 				tmp = new HashMap<String, String>();
