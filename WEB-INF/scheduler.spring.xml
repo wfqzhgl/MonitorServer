@@ -41,6 +41,12 @@
 		<property name="concurrent" value="false"/>
 	</bean>
 	
+		<bean id="schedulerMapDatatoRedisJob"		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="mapDatatoRedis" />
+		<property name="targetMethod" value="load"/>
+		<property name="concurrent" value="false"/>
+	</bean>
+	
 	
 	<bean id="schedulerConfigLoadTrigger"		class="org.springframework.scheduling.quartz.CronTriggerBean">
 		<property name="jobDetail" ref="schedulerConfigLoadlJob" />
@@ -57,6 +63,11 @@
 		<property name="cronExpression" value="20 30 * * * ?"/>
 	</bean>
 	
+		<bean id="schedulerMapDatatoRedisJobTrigger"		class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="schedulerMapDatatoRedisJob" />
+		<property name="cronExpression" value="0/30  * * * * ?"/>
+	</bean>
+	
 	<!-- 定时加载类的调度类 -->
 	<bean id="schedulerFactoryBean" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
 		<property name="triggers">
@@ -64,6 +75,8 @@
 				<ref local="schedulerConfigLoadTrigger" />
 				<ref local="schedulerHourlyFlowJobTrigger" />
 				<ref local="schedulerHourlyLogJobTrigger" />
+				
+				<ref local = "schedulerMapDatatoRedisJobTrigger" />
 			</list>
 		</property>
 	</bean>

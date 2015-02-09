@@ -556,6 +556,139 @@ public class HbaseBaseOP {
 		}
 	}
 
+	public List<Map<String, String>> get_space_origin_list_forcache(
+			long timeFrom, int limit) throws IOException {
+
+		if (String.valueOf(timeFrom).length() == 10) {
+			timeFrom = timeFrom * 1000;
+		}
+
+		long timeEnd = System.currentTimeMillis() - 20000;
+
+		List<Map<String, String>> res = new ArrayList<Map<String, String>>();
+		Map<String, Map<String, String>> res_map = new HashMap<String, Map<String, String>>();
+
+		Collection<DeviceVO> devices = DeviceConfigLoad.getInstance()
+				.getDevices();
+
+		HTable table;
+		Scan scan;
+		Map<String, String> tmp;
+		int tip = 0;
+		long percount = limit / 3;
+		int limitCountInChina = limit / 5;
+		int countInChina = 0;
+		for (DeviceVO dev : devices) {
+			logger.info("------- at device " + tip);
+			String tname = dev.getGuid() + "_log";
+			// if (!isTableExist(tname)) {
+			// logger.info("===htable  not exist:" + tname);
+			// continue;
+			// }
+			table = new HTable(conf, tname);
+			scan = new Scan();
+			scan.setCaching(200);
+			// String begin = Utils.getHbaseKeyByTimeStamp(timeEnd);
+			// String end = Utils.getHbaseKeyByTimeStamp(timeFrom);
+			// scan.setStartRow(begin.getBytes());
+			// scan.setStopRow(end.getBytes());
+			PageFilter pf = new PageFilter(percount);
+			scan.setMaxResultSize(percount);
+			scan.setFilter(pf);
+
+			ResultScanner results = table.getScanner(scan);
+			for (Result result : results) {
+				tmp = new HashMap<String, String>();
+
+				String dip = "";
+				if (result
+						.containsColumn("log".getBytes(), "dst_ip".getBytes())) {
+					dip = new String(result.getValue("log".getBytes(),
+							"dst_ip".getBytes()));
+				}
+
+				String sip = "";
+				if (result
+						.containsColumn("log".getBytes(), "src_ip".getBytes())) {
+					sip = new String(result.getValue("log".getBytes(),
+							"src_ip".getBytes()));
+				}
+
+				String event_type = getTypeName(new String(result.getValue(
+						"log".getBytes(), "type".getBytes())));
+
+				IpInfo sinfo = IPParserLoad.getInstance().parseIP(sip);
+				IpInfo dinfo = IPParserLoad.getInstance().parseIP(dip);
+
+				// limit count : source and target both in china.
+				if (sinfo.getCountry().equalsIgnoreCase("中国")
+						&& dinfo.getCountry().equalsIgnoreCase("中国")) {
+					if (countInChina >= limitCountInChina) {
+						logger.debug("-----countInChina got limit = " + countInChina);
+						continue;
+					} else {
+						logger.debug("-----countInChina = " + countInChina);
+						countInChina++;
+					}
+				}
+
+				tmp.put("dip", dinfo.getIp().toString());
+				tmp.put("sip", sinfo.getIp().toString());
+				tmp.put("msg_data", event_type);
+				tmp.put("d_country_code", dinfo.getCountry_code());
+				tmp.put("d_country_name", dinfo.getCountry());
+				tmp.put("d_province_code", dinfo.getProvince_code());
+				tmp.put("d_province_name", dinfo.getProvince());
+				tmp.put("d_city_code", dinfo.getCity_code());
+				tmp.put("d_city_name", dinfo.getCity());
+				tmp.put("s_country_code", sinfo.getCountry_code());
+				tmp.put("s_country_name", sinfo.getCountry());
+				tmp.put("s_province_code", sinfo.getProvince_code());
+				tmp.put("s_province_name", sinfo.getProvince());
+				tmp.put("s_city_code", sinfo.getCity_code());
+				tmp.put("s_city_name", sinfo.getCity());
+				tmp.put("count", "1");
+
+				String row = new String(new String(result.getRow()));
+				String time = Utils.get_date_string_from_hbase_key(row);
+				tmp.put("time", time);
+
+				String title = time + " " + tmp.get("sip") + "("
+						+ tmp.get("s_country_name") + ")" + "->"
+						+ tmp.get("dip") + "(" + tmp.get("d_country_name")
+						+ ") " + event_type;
+
+				tmp.put("msg_title", title);
+
+				logger.info("-------  record:" + "time:" + time + ",sip:" + sip
+						+ ",dip:" + dip + sinfo.getCountry()
+						+ sinfo.getProvince() + "-->" + dinfo.getCountry()
+						+ dinfo.getProvince() + "," + event_type);
+
+				res.add(tmp);
+				if (res.size() >= limit || res_map.size() >= limit) {
+					logger.info("------- limit got,exiting0.");
+					break;
+				}
+
+			}
+			table.close();
+			tip++;
+
+			if (res.size() >= limit || res_map.size() >= limit) {
+				logger.info("------- limit got,exiting1.");
+				break;
+			}
+		}
+
+		logger.debug("---------size of get_space_origin_list_forcache: res="
+				+ res.size() + ",resmap=" + res_map.size());
+		if (res_map.size() > 0) {
+			return new ArrayList(res_map.values());
+		}
+		return res;
+	}
+
 	public List<Map<String, String>> get_space_origin_list(long timeFrom,
 			long timeEnd, long limit, List<String> type_names)
 			throws IOException, ParseException {
@@ -571,8 +704,11 @@ public class HbaseBaseOP {
 
 		}
 
-		logger.info("-------get request origin list:" + timeFrom + ",limit="
-				+ limit + ",type=" + Arrays.toString(type_names.toArray()));
+		if (type_names != null) {
+			logger.info("-------get request origin list:" + timeFrom
+					+ ",limit=" + limit + ",type="
+					+ Arrays.toString(type_names.toArray()));
+		}
 
 		List<Map<String, String>> res = new ArrayList<Map<String, String>>();
 		Map<String, Map<String, String>> res_map = new HashMap<String, Map<String, String>>();
@@ -584,7 +720,7 @@ public class HbaseBaseOP {
 		Scan scan;
 		Map<String, String> tmp;
 		int tip = 0;
-		 long percount = limit/3;
+		long percount = limit / 3;
 		for (DeviceVO dev : devices) {
 			logger.info("------- at device " + tip);
 			String tname = dev.getGuid() + "_log";
@@ -595,18 +731,18 @@ public class HbaseBaseOP {
 			table = new HTable(conf, tname);
 			scan = new Scan();
 			scan.setCaching(200);
-//			String begin = Utils.getHbaseKeyByTimeStamp(timeEnd);
-//			String end = Utils.getHbaseKeyByTimeStamp(timeFrom);
-//			scan.setStartRow(begin.getBytes());
-//			scan.setStopRow(end.getBytes());
-			PageFilter pf =new PageFilter(percount);
+			// String begin = Utils.getHbaseKeyByTimeStamp(timeEnd);
+			// String end = Utils.getHbaseKeyByTimeStamp(timeFrom);
+			// scan.setStartRow(begin.getBytes());
+			// scan.setStopRow(end.getBytes());
+			PageFilter pf = new PageFilter(percount);
 			scan.setMaxResultSize(percount);
 			scan.setFilter(pf);
-			
+
 			ResultScanner results = table.getScanner(scan);
 			for (Result result : results) {
 				tmp = new HashMap<String, String>();
-				
+
 				String dip = "";
 				if (result
 						.containsColumn("log".getBytes(), "dst_ip".getBytes())) {
@@ -661,12 +797,13 @@ public class HbaseBaseOP {
 				String row = new String(new String(result.getRow()));
 				String time = Utils.get_date_string_from_hbase_key(row);
 				tmp.put("time", time);
-				
-				String title = time+" "+tmp.get("sip") + "(" + tmp.get("s_country_name")+ ")"
-						+ "->" +tmp.get("dip")+ "("+ tmp.get("d_country_name")+ ") "+event_type ;
-				
+
+				String title = time + " " + tmp.get("sip") + "("
+						+ tmp.get("s_country_name") + ")" + "->"
+						+ tmp.get("dip") + "(" + tmp.get("d_country_name")
+						+ ") " + event_type;
+
 				tmp.put("msg_title", title);
-				
 
 				if (custom) {
 					String key = sinfo.getCountry() + sinfo.getProvince() + "_"

@@ -51,6 +51,7 @@ public interface Constant {
 	String SRC_IP_KEY = "src_ip";
 	String DST_IP_KEY = "dst_ip";
 	String PARAMETER_MAPLIST_BEGINTIME = "begintime";
+	String MAP_DATA_FROM_REDIS_KEY = "Map_data_from_redis";
 	String QUERY_BEGIN = "begin";
 	String QUERY_END = "end";
 	String QUERY_PROTOCOLS = "protocols";

@@ -7,6 +7,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -168,10 +169,16 @@ public class EventSpaceDao extends BaseDao {
 					ends, this.getCustomMapDataSize(), elist);
 		} else {
 			logger.info("------------data from auto time-------");
-			hlist = HbaseBaseOP.getInstance().get_space_origin_list(
-					Long.parseLong(begintime), 0, Long.parseLong(limit), elist);
-		}
+			if (getMap_data_from_redis()) {
+				hlist = getMap_data_from_redis_latest(Integer.parseInt(limit));
+			}
 
+			if (hlist == null || hlist.isEmpty()) {
+				hlist = HbaseBaseOP.getInstance().get_space_origin_list(
+						Long.parseLong(begintime), 0, Long.parseLong(limit),
+						elist);
+			}
+		}
 
 		Map<String, String> map_last_data = new HashMap<String, String>();
 
@@ -179,23 +186,25 @@ public class EventSpaceDao extends BaseDao {
 		vo.setType(showtype);
 		List<Map<String, String>> msglist = new ArrayList<Map<String, String>>();
 		List<Map<String, String>> datalist = new ArrayList<Map<String, String>>();
-		
+
 		for (Map<String, String> map : hlist) {
-			
+
 			Map<String, String> tmpmap = new HashMap<String, String>();
 
 			if (reverse && map.get("s_country_name").equalsIgnoreCase("中国")
 					&& !map.get("d_country_name").equalsIgnoreCase("中国")) {
-				
-				String titile = map.get("time")+" "+map.get("dip") + "(" + map.get("d_country_name")+ ")"
-						+ "->" +map.get("sip")+ "("+ map.get("s_country_name")+ ") "+map.get("msg_data") ;
-				
+
+				String titile = map.get("time") + " " + map.get("dip") + "("
+						+ map.get("d_country_name") + ")" + "->"
+						+ map.get("sip") + "(" + map.get("s_country_name")
+						+ ") " + map.get("msg_data");
+
 				tmpmap.put("msg_title", titile);
 				tmpmap.put("msg_data", map.get("msg_data"));
 				msglist.add(tmpmap);
 
 				tmpmap = new HashMap<String, String>();
-				
+
 				tmpmap.put("sip", map.get("dip"));
 				tmpmap.put("s_country_code", map.get("d_country_code"));
 				tmpmap.put("s_country_name", map.get("d_country_name"));
@@ -241,9 +250,12 @@ public class EventSpaceDao extends BaseDao {
 			if (tmpmap.get("d_country_name").equalsIgnoreCase("中国")
 					&& !tmpmap.get("s_country_name").equalsIgnoreCase("中国")) {
 				map_last_data = tmpmap;
-				String titile = tmpmap.get("time")+" "+tmpmap.get("sip") + "(" + tmpmap.get("s_country_name")+ ")"
-						+ "->" +tmpmap.get("dip")+ "("+ tmpmap.get("d_country_name")+ ") "+map.get("msg_data") ;
-				
+				String titile = tmpmap.get("time") + " " + tmpmap.get("sip")
+						+ "(" + tmpmap.get("s_country_name") + ")" + "->"
+						+ tmpmap.get("dip") + "("
+						+ tmpmap.get("d_country_name") + ") "
+						+ map.get("msg_data");
+
 				map_last_data.put("msg_title", titile);
 				map_last_data.put("msg_data", map.get("msg_data"));
 
@@ -289,6 +301,27 @@ public class EventSpaceDao extends BaseDao {
 
 	}
 
+	private List<Map<String, String>> getMap_data_from_redis_latest(int limit) {
+		// TODO Auto-generated method stub
+
+		String json = JedisUtils.getInstance().get(
+				Constant.MAP_DATA_FROM_REDIS_KEY);
+		if (json == null || json.isEmpty()) {
+			logger.debug("---getMap_data_from_redis_latest:len= 0");
+			return new ArrayList<Map<String, String>>();
+		}
+
+		JSONArray oo = JSONArray.fromObject(json);
+		List<Map<String, String>> listmap = (List<Map<String, String>>) JSONArray
+				.toList(oo, Map.class);
+		logger.debug("---getMap_data_from_redis_latest:len=" + listmap.size());
+		// random
+		if (listmap.size() > limit) {
+			Collections.shuffle(listmap);
+		}
+		return listmap.subList(0, limit);
+	}
+
 	public List<Object> get_space_map_list(String sessionid,
 			Map<String, String> params) throws IOException {
 
@@ -321,7 +354,8 @@ public class EventSpaceDao extends BaseDao {
 			} else {
 				Random r = new Random();
 				content = FileUtils.readFileToString(new File(
-						"/data/soft/MonitorServer/WEB-INF/sanlie"+r.nextInt(5)+".json"));
+						"/data/soft/MonitorServer/WEB-INF/sanlie"
+								+ r.nextInt(5) + ".json"));
 			}
 			res = JSONObject.fromObject(content);
 		} else {
@@ -606,6 +640,17 @@ public class EventSpaceDao extends BaseDao {
 
 		String s = this.config.getConfigData(Constant.MAP_DATA_FROM_FILE,
 				"false");
+		if (s.equalsIgnoreCase("false")) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	public boolean getMap_data_from_redis() {
+
+		String s = this.config.getConfigData("map_data_from_redis", "false");
+		logger.debug("----map_data_from_redis:" + s);
 		if (s.equalsIgnoreCase("false")) {
 			return false;
 		} else {

@@ -7,11 +7,14 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.apache.commons.configuration.Configuration;
@@ -216,17 +219,23 @@ public class Utils {
 
 		try {
 			
-			Map<String,String> map = new HashMap();
-			map.put("123", "123");
-			map.put("ssdfs", "中国");
-			JSONObject o = JSONObject.fromObject(map);
+			List<Map<String,String>> listmap = new ArrayList<Map<String,String>>();
+			Map<String,String> tmp = new HashMap<String,String>();
+			tmp.put("123", "123");
+			tmp.put("ssdfs", "中国");
+			listmap.add(tmp);
+			tmp = new HashMap<String,String>();
+			tmp.put("456", "456");
+			tmp.put("ssdfs", "中国");
+			listmap.add(tmp);
+			JSONArray o = JSONArray.fromObject(listmap);
 			String json = o.toString();
 			System.out.println(json);
 			
-			JSONObject oo = JSONObject.fromObject(json);
-			Map<String, String> mm = (Map<String, String>) JSONObject.toBean(oo,
-					Map.class);
-			System.out.println(mm.get("123"));
+			JSONArray oo = JSONArray.fromObject(json);
+			List<Map<String,String>> mm = (List<Map<String,String>>) JSONArray.toList(oo, Map.class);
+			Collections.shuffle(mm);
+			System.out.println(mm);
 			
 //			System.out.println(get_date_string_from_hbase_key("65459173422220000"));
 			//

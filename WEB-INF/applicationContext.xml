@@ -69,6 +69,10 @@
 		<property name="propertiesfilename" value="../redis.properties" />
 	</bean>
 
+	<bean id="mapDatatoRedis" class="com.it.hadoop.MapDatatoRedis"
+		factory-method="getInstance">
+	</bean>
+	
 	<bean id="hourlyFlowJob" class="com.it.hadoop.HourlyFlowJob"
 		factory-method="getInstance">
 		<property name="jdbcTemplate" ref="jdbcTemplateMain" />
